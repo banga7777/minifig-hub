@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
-    "resources": "npm run build && npx capacitor-assets generate"
+    "resources": "npm run build && npx capacitor-assets generate",
+    "deploy": "npx wrangler deploy --assets=./www"
   },
   "dependencies": {
     "@capacitor-community/admob": "^6.0.0",
@@ -16,13 +17,9 @@
     "@capacitor/core": "^6.0.0",
     "@google/genai": "^0.15.0",
     "@supabase/supabase-js": "^2.44.2",
-    "clsx": "^2.1.1",
-    "framer-motion": "^12.34.3",
-    "lucide-react": "^0.575.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.24.0",
-    "tailwind-merge": "^3.5.0"
+    "react-router-dom": "^6.24.0"
   },
   "devDependencies": {
     "@capacitor/android": "^6.0.0",
