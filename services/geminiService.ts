@@ -11,7 +11,7 @@ export interface ScanResult {
 
 export const geminiService = {
   identifyWithVector: async (base64Image: string): Promise<ScanResult | null> => {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     try {
       // Step 1: Visual Feature Extraction
@@ -42,7 +42,7 @@ export const geminiService = {
         }
       });
 
-      const embedding = embeddingResult.embedding;
+      const embedding = embeddingResult.embeddings?.[0];
       if (!embedding || !embedding.values) {
         throw new Error("EMBEDDING_GENERATION_FAILED");
       }
