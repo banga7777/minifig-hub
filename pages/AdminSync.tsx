@@ -40,7 +40,7 @@ const AdminSync: React.FC = () => {
     setStatus("INITIALIZING AI PIPELINE...");
     
     // Create AI instance inside the sync process to ensure fresh API key context
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     let currentProcessed = 0;
 
     try {
