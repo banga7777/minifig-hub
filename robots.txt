@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://minifig-hub.run.app/sitemap.xml
