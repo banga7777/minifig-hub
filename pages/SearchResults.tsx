@@ -9,6 +9,7 @@ interface SearchResultsProps {
   allMinifigs: Minifigure[];
   onToggleOwned: (id: string) => void;
   onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
+  dataLoading: boolean;
 }
 
 type SortOption = 'relevance' | 'year' | 'name' | 'id' | 'value';
@@ -21,7 +22,7 @@ const decodeHTMLEntities = (text: string) => {
   return textArea.value;
 };
 
-const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggleOwned, onBulkToggleOwned }) => {
+const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggleOwned, onBulkToggleOwned, dataLoading }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
@@ -219,6 +220,14 @@ const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggl
   }, [filteredResults.length]);
 
   const visibleResults = useMemo(() => filteredResults.slice(0, visibleCount), [filteredResults, visibleCount]);
+  
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-40 pt-6">

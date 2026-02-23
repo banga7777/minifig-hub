@@ -12,6 +12,7 @@ interface CollectionProps {
   user: UserProfile | null;
   onShowSettings: (isOpen: boolean) => void; 
   onShowDeleteModal: (isOpen: boolean) => void;
+  dataLoading: boolean;
 }
 
 type SortOption = 'newest' | 'name' | 'theme' | 'value';
@@ -29,7 +30,7 @@ const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
 };
 
-const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal }) => {
+const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal, dataLoading }) => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('value');
@@ -228,6 +229,14 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
   };
 
   const gridClass = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5' }[gridCols];
+  
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-slate-50 min-h-screen pb-44 font-['Outfit'] relative">

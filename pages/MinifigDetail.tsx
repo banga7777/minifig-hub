@@ -18,6 +18,7 @@ interface MinifigDetailProps {
   onToggleOwned: (id: string) => void;
   allMinifigs: Minifigure[];
   user: UserProfile | null;
+  dataLoading: boolean;
 }
 
 const decodeHTMLEntities = (text: string) => {
@@ -36,7 +37,7 @@ const stripSetSuffix = (setNo: string) => {
   return setNo.split('-')[0];
 };
 
-const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifigs, user }) => {
+const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifigs, user, dataLoading }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [appearanceSummary, setAppearanceSummary] = useState<AppearanceSummary | null>(null);
@@ -45,13 +46,12 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifig
   const minifig = useMemo(() => allMinifigs.find(m => m.item_no === id), [allMinifigs, id]);
 
   useEffect(() => {
+    if (!minifig) return;
     const VIEW_COUNT_KEY = 'minifig_detail_view_count';
     const currentCount = parseInt(sessionStorage.getItem(VIEW_COUNT_KEY) || '0', 10);
     const newCount = currentCount + 1;
     sessionStorage.setItem(VIEW_COUNT_KEY, newCount.toString());
     AdMobService.showInterstitial();
-
-    if (!id || !minifig) return;
 
     const controller = new AbortController();
     const fetchAppearanceData = async () => {
@@ -111,6 +111,14 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifig
     scoredCandidates.sort((a, b) => b.score !== a.score ? b.score - a.score : b.minifig.year_released - a.minifig.year_released);
     return scoredCandidates.slice(0, 15).map(item => item.minifig);
   }, [allMinifigs, minifig]);
+
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (!minifig) return (
     <div className="min-h-screen flex items-center justify-center text-center">

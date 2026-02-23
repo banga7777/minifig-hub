@@ -9,13 +9,14 @@ interface ThemeDetailProps {
   onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
   allMinifigs: Minifigure[];
   onShowSubCatModal: (isOpen: boolean) => void; 
+  dataLoading: boolean;
 }
 
 type SortOption = 'newest' | 'name' | 'id' | 'value';
 type SortOrder = 'asc' | 'desc';
 type OwnedFilter = 'all' | 'owned' | 'missing';
 
-const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOwned, allMinifigs, onShowSubCatModal }) => {
+const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOwned, allMinifigs, onShowSubCatModal, dataLoading }) => {
   const { themeName } = useParams<{ themeName: string }>();
   const navigate = useNavigate();
   
@@ -183,6 +184,14 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
   const totalCount = themeMinifigs.length;
   const completionRate = totalCount > 0 ? (ownedCount / totalCount) * 100 : 0;
   const defaultImage = themeMinifigs[0]?.image_url;
+  
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-44 bg-slate-50 min-h-screen">

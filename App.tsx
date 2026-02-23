@@ -129,14 +129,14 @@ const MainContent: React.FC<MainContentProps> = ({
         <Routes>
           <Route path="/" element={<Home onToggleOwned={onToggleOwned} ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} topMinifigs={topMinifigs} marketMovers={marketMovers} volumeMovers={volumeMovers} collectorRanking={collectorRanking} onRetryFetch={onRetryFetch} />} />
           <Route path="/auth" element={user ? <Navigate to="/collection" /> : <Auth onShowLegalModal={(isOpen: boolean) => updateModalState('authLegal', isOpen)} />} />
-          <Route path="/collection" element={<ProtectedRoute user={user} loading={authLoading}><Collection allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} user={user} onShowSettings={(isOpen: boolean) => updateModalState('collectionSettings', isOpen)} onShowDeleteModal={(isOpen: boolean) => updateModalState('collectionDelete', isOpen)} /></ProtectedRoute>} />
+          <Route path="/collection/*" element={<ProtectedRoute user={user} loading={authLoading}><Collection allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} user={user} onShowSettings={(isOpen: boolean) => updateModalState('collectionSettings', isOpen)} onShowDeleteModal={(isOpen: boolean) => updateModalState('collectionDelete', isOpen)} dataLoading={dataLoading} /></ProtectedRoute>} />
           <Route path="/stats" element={<ProtectedRoute user={user} loading={authLoading}><Stats ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} /></ProtectedRoute>} />
           <Route path="/themes" element={<ThemeList allMinifigs={allMinifigs} />} />
-          <Route path="/minifigs/:id/:name" element={<MinifigDetail onToggleOwned={onToggleOwned} allMinifigs={allMinifigs} user={user} />} />
-          <Route path="/themes/:themeName" element={<ThemeDetail onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} allMinifigs={allMinifigs} onShowSubCatModal={(isOpen: boolean) => updateModalState('themeDetailSubCat', isOpen)} />} />
-          <Route path="/search" element={<SearchResults allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} />} />
-          <Route path="/profile" element={<ProtectedRoute user={user} loading={authLoading}><Profile user={user} onLogout={onLogout} allMinifigs={allMinifigs} /></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="/minifigs/:id/*" element={<MinifigDetail onToggleOwned={onToggleOwned} allMinifigs={allMinifigs} user={user} dataLoading={dataLoading} />} />
+          <Route path="/themes/:themeName/*" element={<ThemeDetail onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} allMinifigs={allMinifigs} onShowSubCatModal={(isOpen: boolean) => updateModalState('themeDetailSubCat', isOpen)} dataLoading={dataLoading} />} />
+          <Route path="/search/*" element={<SearchResults allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} dataLoading={dataLoading} />} />
+          <Route path="/profile/*" element={<ProtectedRoute user={user} loading={authLoading}><Profile user={user} onLogout={onLogout} allMinifigs={allMinifigs} /></ProtectedRoute>} />
+          <Route path="*" element={<div className="min-h-screen flex items-center justify-center text-center p-4"><div className="animate-in fade-in zoom-in duration-300"><p className="text-slate-400 font-bold mb-4">Page Not Found</p><p className="text-xs text-slate-300 mb-6 font-mono">{location.pathname}</p><Link to="/" className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Go Home</Link></div></div>} />
         </Routes>
       </main>
       <Navigation />
