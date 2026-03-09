@@ -1,7 +1,0 @@
-{
-  "name": "Minifig Hub",
-  "description": "The ultimate LEGO Minifigure collection tracker. Manage, explore, and grow your collection with ease.",
-  "requestFramePermissions": [
-    "camera"
-  ]
-}
