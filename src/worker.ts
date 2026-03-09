@@ -12,9 +12,22 @@ export default {
         headers: request.headers
       });
       const indexResponse = await env.ASSETS.fetch(indexRequest);
-      return new Response(indexResponse.body, {
+      response = new Response(indexResponse.body, {
         status: 200,
         headers: indexResponse.headers
+      });
+    }
+
+    // 3. Prevent caching for HTML files to ensure users get the latest version
+    if (response.headers.get('content-type')?.includes('text/html')) {
+      const newHeaders = new Headers(response.headers);
+      newHeaders.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      newHeaders.set('Pragma', 'no-cache');
+      newHeaders.set('Expires', '0');
+      response = new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders
       });
     }
 
