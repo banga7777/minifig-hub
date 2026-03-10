@@ -249,7 +249,7 @@ const MainContent: React.FC<MainContentProps> = ({
             <Route path="/character/troopers" element={<PageWrapper><CharacterHub allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
             <Route path="/character/troopers/:factionId" element={<PageWrapper><TrooperSubHub allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
             <Route path="/character/troopers/:factionId/:unitId" element={<PageWrapper><TrooperSubHub allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
-            <Route path="/lego-star-wars-minifigure-framework" element={<PageWrapper><Framework allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
+            <Route path="/lego-star-wars-minifigure-archive" element={<PageWrapper><Framework allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
             <Route path="/role/army-builders/*" element={<PageWrapper><ArmyBuilders allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
             <Route path="/role/character-centerpieces/*" element={<PageWrapper><CharacterCenterpieces allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
             <Route path="/role/elite-specialists/*" element={<PageWrapper><EliteSpecialists allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />

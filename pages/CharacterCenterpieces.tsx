@@ -424,6 +424,9 @@ const CharacterHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigure
           >
             The iconic heroes and villains that shaped the galaxy. Explore the evolution of key characters from the Skywalker Saga, the Jedi Council, and the Sith Lords.
           </motion.p>
+          <div className="mt-12 p-8 bg-slate-900/50 rounded-3xl border border-white/5 text-slate-300 text-sm leading-relaxed max-w-3xl mx-auto">
+            The heart of Star Wars lies in its characters. LEGO Star Wars Character Centerpieces are more than just minifigures; they are the protagonists that bring iconic movie scenes to life. Key figures like Anakin Skywalker, Luke, and Darth Vader vary in detail, printing, and part composition across different versions, making them highly valuable to collectors. Modern versions, featuring intricate arm and leg printing, showcase the pinnacle of LEGO design. Placing these iconic characters at the center of your collection will truly complete your Star Wars legacy.
+          </div>
         </div>
       </header>
 

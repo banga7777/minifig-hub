@@ -18,7 +18,7 @@ export const PILOT_DATA: SupportSection[] = [
   {
     id: 'starfighter-pilots',
     name: 'Starfighter Pilots',
-    desc: 'The skilled aviators who dominate the stars. From the heroic Rebel X-wing pilots to the cold, efficient TIE fighter corps, this archive tracks the evolution of flight gear and life-support systems across every era of the Star Wars saga.',
+    desc: 'The skilled aviators who dominate the stars. From the heroic Rebel X-wing pilots to the cold, efficient TIE fighter corps, this archive tracks the evolution of flight gear and life-support systems across every era of the Star Wars saga. For collectors, these figures are essential support units, representing the brave and often overlooked heroes and villains who fought in the most intense space battles. Their detailed flight suits, intricate helmet designs, and the inclusion of specialized gear like oxygen masks and life-support chests make them highly sought after. Building a collection of these pilots allows you to recreate the most iconic dogfights and space-based missions in the Star Wars galaxy, adding a sense of speed and action to your display.',
     subsections: [
       {
         id: 'rebel-pilots',
@@ -71,7 +71,7 @@ export const TECH_OFFICER_DATA: SupportSection[] = [
   {
     id: 'tech-officers',
     name: 'Tech & Officers',
-    desc: 'The strategic and logistical backbone of the galaxy\'s military machines. This archive includes the high-ranking officers who command fleets, the specialized drivers who operate massive walkers, and the technical staff who keep the gears of war turning.',
+    desc: 'The strategic and logistical backbone of the galaxy\'s military machines. This archive includes the high-ranking officers who command fleets, the specialized drivers who operate massive walkers, and the technical staff who keep the gears of war turning. For collectors, these figures are essential support units, representing the administrative and technical expertise that kept the Republic, the Empire, and the First Order functioning. Their distinct uniforms, from the olive-drab of the Empire to the specialized gear of the walker drivers, are captured in stunning detail by LEGO. Building a collection of these support personnel allows you to recreate the command centers, hangars, and walker cockpits that were the true engines of the galaxy\'s conflicts.',
     subsections: [
       {
         id: 'imperial-officers',
@@ -111,7 +111,7 @@ export const DROID_DATA: SupportSection[] = [
   {
     id: 'droids',
     name: 'Droids',
-    desc: 'The mechanical heart of the Star Wars universe. This comprehensive archive tracks the evolution of the galaxy\'s most essential droids, from the versatile R2-series astromechs to the sophisticated protocol units like C-3PO.',
+    desc: 'The mechanical heart of the Star Wars universe. This comprehensive archive tracks the evolution of the galaxy\'s most essential droids, from the versatile R2-series astromechs to the sophisticated protocol units like C-3PO. For collectors, these figures are the ultimate support units, representing the diverse and often indispensable mechanical helpers that served the Jedi, the Rebellion, the Empire, and everyone in between. Their unique designs, from the iconic dome heads of the astromechs to the human-like frames of the protocol droids, are captured in incredible detail. Building a collection of these droids allows you to recreate the most memorable scenes in the saga, adding a sense of life and personality to your display.',
     subsections: [
       {
         id: 'astromechs',

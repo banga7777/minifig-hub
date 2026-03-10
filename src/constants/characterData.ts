@@ -21,7 +21,7 @@ export interface CharacterSection {
 export const SKYWALKER_SAGA_DATA: CharacterSection[] = [
   {
     title: "1. The Skywalker Bloodline",
-    desc: "The family that shaped the destiny of the galaxy.",
+    desc: "The family that shaped the destiny of the galaxy. This collection covers the Skywalker lineage, from the humble beginnings of Anakin on Tatooine to the rise of the Empire and the eventual redemption of the family through Luke and Leia. These figures are essential for any collector, as they represent the central figures of the Star Wars saga. Their evolution across the different eras—from the Clone Wars to the Galactic Civil War and the rise of the First Order—is captured in meticulous detail by LEGO, making them the most important centerpieces for any Star Wars collection.",
     subsections: [
       {
         id: "anakin-skywalker",
@@ -94,7 +94,7 @@ export const SKYWALKER_SAGA_DATA: CharacterSection[] = [
 export const JEDI_COUNCIL_DATA: CharacterSection[] = [
   {
     title: "1. Masters of the Order",
-    desc: "The wisest and most powerful Jedi Masters who led the Jedi Order during its final days.",
+    desc: "The wisest and most powerful Jedi Masters who led the Jedi Order during its final days. This section includes the key members of the Jedi High Council, whose decisions shaped the course of the Clone Wars and the fate of the Republic. For collectors, these figures are the ultimate centerpieces, representing the pinnacle of Jedi wisdom and power. The intricate printing on their robes, the unique head molds for different species, and the inclusion of their iconic lightsabers make them highly desirable. Building a collection of these Jedi Masters allows you to recreate the iconic scenes of the Jedi Council Chamber and honor the legacy of the Jedi Order.",
     subsections: [
       {
         id: "obi-wan-kenobi",
@@ -285,7 +285,7 @@ export const JEDI_COUNCIL_DATA: CharacterSection[] = [
 export const SITH_DARK_SIDE_DATA: CharacterSection[] = [
   {
     title: "1. Lords of the Sith",
-    desc: "The dark side users who sought to control the galaxy.",
+    desc: "The dark side users who sought to control the galaxy. This section includes the most powerful Sith Lords and dark side adepts, whose machinations brought down the Republic and established the Galactic Empire. These figures are essential centerpieces for any collection, representing the ultimate antagonists of the Star Wars saga. Their menacing designs, from the iconic black armor of Darth Vader to the intricate robes of Emperor Palpatine, are captured in stunning detail. Collectors value these figures for their role in the most dramatic and pivotal moments of the saga, making them a must-have for any display that focuses on the dark side of the Force.",
     subsections: [
       {
         id: "emperor-palpatine",

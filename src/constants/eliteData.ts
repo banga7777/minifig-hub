@@ -18,7 +18,7 @@ export const MANDALORIAN_DATA: EliteSection[] = [
   {
     id: 'mandalorians',
     name: 'Mandalorians',
-    desc: 'The legendary warrior culture of Mandalore, known for their nearly indestructible Beskar armor and mastery of combat. This archive covers the complete lineage from the traditional clans and bounty hunters like Boba Fett to the specialized splinter groups like Death Watch.',
+    desc: 'The legendary warrior culture of Mandalore, known for their nearly indestructible Beskar armor and mastery of combat. This archive covers the complete lineage from the traditional clans and bounty hunters like Boba Fett to the specialized splinter groups like Death Watch. For collectors, these figures are the ultimate elite specialists, representing the diverse and often conflicting ideologies of the Mandalorian people. The intricate details on their helmets, the variety of their armor colors, and the inclusion of specialized weapons like jetpacks and flamethrowers make them highly sought after. Building a Mandalorian collection allows you to explore the rich history and culture of one of the most fascinating warrior societies in the Star Wars galaxy.',
     subsections: [
       {
         id: 'the-tribe',
@@ -64,7 +64,7 @@ export const ELITE_CLONE_DATA: EliteSection[] = [
   {
     id: 'elite-clones',
     name: 'Elite Clone Units',
-    desc: 'The most highly trained and specialized soldiers of the Grand Army of the Republic. These units were often granted more autonomy and specialized gear to handle high-stakes missions that standard infantry could not accomplish.',
+    desc: 'The most highly trained and specialized soldiers of the Grand Army of the Republic. These units were often granted more autonomy and specialized gear to handle high-stakes missions that standard infantry could not accomplish. For collectors, these figures are essential elite specialists, representing the pinnacle of clone trooper training and equipment. The unique armor modifications, specialized weapons, and the inclusion of detailed gear like kamas and pauldrons make them stand out in any display. Building a collection of these elite units allows you to recreate the most daring and critical missions of the Clone Wars, showcasing the tactical versatility of the Republic\'s finest soldiers.',
     subsections: [
       {
         id: 'arc-troopers',
@@ -112,7 +112,7 @@ export const IMPERIAL_GUARD_DATA: EliteSection[] = [
   {
     id: 'imperial-guards',
     name: 'Imperial Guards',
-    desc: 'The absolute pinnacle of loyalty and combat prowess within the Empire and the First Order. These silent sentinels are hand-picked from the most promising recruits to serve as the personal protectors of the galaxy\'s most powerful leaders.',
+    desc: 'The absolute pinnacle of loyalty and combat prowess within the Empire and the First Order. These silent sentinels are hand-picked from the most promising recruits to serve as the personal protectors of the galaxy\'s most powerful leaders. For collectors, these figures are the ultimate elite specialists, representing the most loyal and dangerous guardians of the Imperial and First Order regimes. Their striking armor designs, from the classic crimson of the Royal Guards to the sleek, high-tech look of the Praetorian Guards, make them highly desirable. Building a collection of these elite guards allows you to recreate the most secure and imposing locations in the galaxy, adding a sense of danger and authority to your display.',
     subsections: [
       {
         id: 'royal-guards',

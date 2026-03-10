@@ -22,27 +22,30 @@ const CollectionDashboard: React.FC<CollectionDashboardProps> = ({ user, onNavig
     queryFn: async () => {
       if (!user) return null;
       
-      // Fetch only the owned minifigs with price data
-      const { data, error } = await supabase
+      // 1. Fetch owned minifig IDs
+      const { data: ownedData, error: ownedError } = await supabase
         .from('user_owned_minifigs')
-        .select(`
-          minifigures (
-            item_no,
-            last_stock_avg_price,
-            last_stock_min_price
-          )
-        `)
+        .select('minifig_id')
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (ownedError) throw ownedError;
       
-      const owned = data.map(item => item.minifigures as any).filter(Boolean);
+      const minifigIds = ownedData.map(item => item.minifig_id);
+      if (minifigIds.length === 0) return { count: 0, totalAvgValue: 0, totalMinValue: 0 };
+
+      // 2. Fetch minifigures with prices
+      const { data: minifigs, error: minifigsError } = await supabase
+        .from('minifigures')
+        .select('item_no, last_stock_avg_price, last_stock_min_price')
+        .in('item_no', minifigIds);
+        
+      if (minifigsError) throw minifigsError;
       
-      const totalAvgValue = owned.reduce((sum, m) => sum + (m.last_stock_avg_price || 0), 0);
-      const totalMinValue = owned.reduce((sum, m) => sum + (m.last_stock_min_price || 0), 0);
+      const totalAvgValue = minifigs.reduce((sum, m) => sum + (m.last_stock_avg_price || 0), 0);
+      const totalMinValue = minifigs.reduce((sum, m) => sum + (m.last_stock_min_price || 0), 0);
       
       return {
-        count: owned.length,
+        count: minifigs.length,
         totalAvgValue,
         totalMinValue
       };

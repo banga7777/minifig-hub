@@ -18,9 +18,9 @@ const Framework: React.FC<FrameworkProps> = ({ allMinifigs, onToggleOwned }) => 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30">
       <SEO 
-        title="LEGO Star Wars Minifigure Master Archive | Collector Framework"
+        title="LEGO Star Wars Minifigure Master Archive | Collector Archive"
         description="The ultimate LEGO Star Wars minifigure database. Categorized by role: Army Builders, Character Centerpieces, Elite Specialists, and Support Units."
-        keywords="LEGO Star Wars, Minifigure Database, Collector Framework, Army Building, Rare LEGO Minifigures"
+        keywords="LEGO Star Wars, Minifigure Database, Collector Archive, Army Building, Rare LEGO Minifigures"
       />
       {/* Hero Section */}
       <header className="relative pt-12 pb-16 px-6 overflow-hidden bg-slate-950">

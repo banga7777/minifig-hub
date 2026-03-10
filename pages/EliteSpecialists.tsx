@@ -399,6 +399,9 @@ const EliteHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigure[], 
           >
             The most skilled warriors in the galaxy. Explore the complete visual history of Mandalorians, Elite Clone Units, and Imperial Guards.
           </motion.p>
+          <div className="mt-12 p-8 bg-slate-900/50 rounded-3xl border border-white/5 text-slate-300 text-sm leading-relaxed max-w-3xl mx-auto">
+            Elite Specialists, distinct from standard infantry, add depth and professionalism to any diorama. From the unique armor designs of Mandalorians to the distinct appearances of Clone Force 99 (The Bad Batch) and the imposing presence of Imperial Guards, these figures are often produced in smaller quantities, making them highly sought after by collectors. Equipped with specialized weapons and gear, these elite units are essential for a truly professional collection. As these figures are often released in limited sets, strategic collecting is recommended to ensure you don't miss out on these rare additions.
+          </div>
         </div>
       </header>
 

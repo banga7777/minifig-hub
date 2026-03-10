@@ -288,7 +288,7 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
               
               <div className="w-full px-1">
                 <Link 
-                  to="/lego-star-wars-minifigure-framework"
+                  to="/lego-star-wars-minifigure-archive"
                   className="block w-full relative group overflow-hidden rounded-[2rem] h-48 sm:h-64 shadow-xl shadow-slate-900/10 border border-slate-800 transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl hover:shadow-slate-900/20 bg-[#0a0f1a] flex"
                 >
                   {/* Left Side (Content) */}

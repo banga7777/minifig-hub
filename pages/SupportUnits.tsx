@@ -399,6 +399,9 @@ const SupportHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigure[]
           >
             The unsung heroes that keep the galaxy moving. Explore the complete visual history of Starfighter Pilots, Tech & Officers, and Droids.
           </motion.p>
+          <div className="mt-12 p-8 bg-slate-900/50 rounded-3xl border border-white/5 text-slate-300 text-sm leading-relaxed max-w-3xl mx-auto">
+            The completeness of a diorama is defined by its supporting cast. Pilots, technicians, and the vast array of droids that sustain the Star Wars universe are essential for bringing any battlefield to life. Astromech droids like R2-D2 and protocol droids like C-3PO offer endless collecting variety, with subtle printing differences across versions that add depth to your collection. Examining the intricate helmet printing of pilots or the specialized gear of technicians is a rewarding experience. Incorporating these support units into your display will create a richer, more authentic, and immersive Star Wars universe.
+          </div>
         </div>
       </header>
 

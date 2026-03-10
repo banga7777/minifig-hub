@@ -395,6 +395,9 @@ const ArmyBuilderHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigu
           >
             Go beyond single figures and complete the majesty of the legion. Analyzing all Clone Troopers, Stormtroopers, and Battle Droid types and evolutions from 1999 to present.
           </motion.p>
+          <div className="mt-12 p-8 bg-slate-900/50 rounded-3xl border border-white/5 text-slate-300 text-sm leading-relaxed max-w-3xl mx-auto">
+            LEGO Star Wars army building is one of the most compelling aspects of collecting. Amassing legions of Clone Troopers or Stormtroopers to create massive, cinematic dioramas is a dream for many fans. When building your army, it's crucial to look beyond just the raw numbers. Understanding the subtle differences between Phase 1 and Phase 2 Clone Trooper helmet designs, the evolution of printing techniques across generations, and the specific armor variations is key to a truly curated collection. Utilize Battle Packs to efficiently build your ranks, and experiment with dynamic posing to bring your battlefield to life. Adding rare legion soldiers can significantly elevate the overall value and visual impact of your display.
+          </div>
         </div>
       </header>
 
