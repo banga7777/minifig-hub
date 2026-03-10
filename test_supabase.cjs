@@ -1,20 +1,18 @@
-const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = 'https://jlbqyxaktbcrjylzqrqm.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpsYnF5eGFrdGJjcmp5bHpxcnFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyNTEzNDIsImV4cCI6MjA4MDgyNzM0Mn0.BOBg8X_unHCr7MAxzsJ2rlP-TGlKIrthntyLA8ZzPUs';
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from './services/supabaseClient';
 
-async function main() {
+async function testFetch() {
+  console.log('Testing fetch...');
   const { data, error } = await supabase
-    .from('minifig_supersets_grouped')
-    .select('*')
-    .eq('item_no', 'sw0700');
+    .from('minifigures')
+    .select('item_no')
+    .limit(5);
   
   if (error) {
-    console.error(error);
+    console.error('Error:', error);
   } else {
-    console.log(JSON.stringify(data, null, 2));
+    console.log('Data:', data);
   }
 }
 
-main();
+testFetch();

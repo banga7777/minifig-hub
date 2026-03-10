@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import MinifigCard from '../components/MinifigCard';
 import { Minifigure } from '../types';
 import SEO from '../components/SEO';
@@ -21,12 +21,60 @@ type OwnedFilter = 'all' | 'owned' | 'missing';
 const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOwned, allMinifigs, onShowSubCatModal, dataLoading }) => {
   const { themeName } = useParams<{ themeName: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeSubCat, setActiveSubCat] = useState<string | null>(null);
-  const [filterOwned, setFilterOwned] = useState<OwnedFilter>('all');
-  const [sortBy, setSortBy] = useState<SortOption>('id');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  // Restore scroll position with retry mechanism
+  React.useLayoutEffect(() => {
+    if (dataLoading) return;
+    
+    const savedPos = sessionStorage.getItem(`scroll_pos_${location.key}`);
+    if (!savedPos) return;
+    
+    const targetY = parseInt(savedPos, 10);
+    const element = document.getElementById('main-scroll-container');
+    if (!element) return;
+
+    // 1. Try immediately
+    element.scrollTo(0, targetY);
+
+    // 2. Retry until rendered (up to 2 seconds)
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      // Check if content is large enough to reach targetY
+      if (element.scrollHeight >= targetY + element.clientHeight || attempts > 20) {
+        element.scrollTo(0, targetY);
+        clearInterval(interval);
+      }
+    }, 100); // Check every 100ms
+
+    return () => clearInterval(interval);
+  }, [dataLoading, location.key]);
+  const [searchTerm, setSearchTerm] = useState(() => {
+    const saved = sessionStorage.getItem(`theme_detail_search_${themeName}`);
+    console.log(`[Debug] Initial searchTerm for ${themeName}:`, saved);
+    return saved || '';
+  });
+  const [activeSubCat, setActiveSubCat] = useState<string | null>(() => {
+    const saved = sessionStorage.getItem(`theme_detail_subcat_${themeName}`);
+    console.log(`[Debug] Initial activeSubCat for ${themeName}:`, saved);
+    return saved;
+  });
+  const [filterOwned, setFilterOwned] = useState<OwnedFilter>(() => {
+    const saved = sessionStorage.getItem(`theme_detail_owned_${themeName}`) as OwnedFilter;
+    console.log(`[Debug] Initial filterOwned for ${themeName}:`, saved);
+    return saved || 'all';
+  });
+  const [sortBy, setSortBy] = useState<SortOption>(() => {
+    const saved = sessionStorage.getItem(`theme_detail_sortby_${themeName}`) as SortOption;
+    console.log(`[Debug] Initial sortBy for ${themeName}:`, saved);
+    return saved || 'id';
+  });
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    const saved = sessionStorage.getItem(`theme_detail_sortorder_${themeName}`) as SortOrder;
+    console.log(`[Debug] Initial sortOrder for ${themeName}:`, saved);
+    return saved || 'desc';
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [catSearch, setCatSearch] = useState('');
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
@@ -46,8 +94,14 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
   useEffect(() => {
     if (themeName) {
       sessionStorage.setItem(`theme_detail_visible_count_${themeName}`, visibleCount.toString());
+      sessionStorage.setItem(`theme_detail_search_${themeName}`, searchTerm);
+      if (activeSubCat) sessionStorage.setItem(`theme_detail_subcat_${themeName}`, activeSubCat);
+      else sessionStorage.removeItem(`theme_detail_subcat_${themeName}`);
+      sessionStorage.setItem(`theme_detail_owned_${themeName}`, filterOwned);
+      sessionStorage.setItem(`theme_detail_sortby_${themeName}`, sortBy);
+      sessionStorage.setItem(`theme_detail_sortorder_${themeName}`, sortOrder);
     }
-  }, [visibleCount, themeName]);
+  }, [visibleCount, themeName, searchTerm, activeSubCat, filterOwned, sortBy, sortOrder]);
 
   useEffect(() => {
     if (themeName) {
@@ -72,6 +126,13 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
   }, [allMinifigs, themeName]);
 
   useEffect(() => {
+    // Check if user already has a preference
+    const savedSortBy = sessionStorage.getItem(`theme_detail_sortby_${themeName}`);
+    const savedSortOrder = sessionStorage.getItem(`theme_detail_sortorder_${themeName}`);
+    
+    // If user has a preference, don't override
+    if (savedSortBy || savedSortOrder) return; 
+
     if (themeMinifigs.length > 0 && themeMinifigs[0].theme_name.toLowerCase().includes('collectible')) {
       setSortBy('newest');
       setSortOrder('desc');
@@ -79,7 +140,7 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
       setSortBy('id');
       setSortOrder('desc');
     }
-  }, [themeMinifigs]);
+  }, [themeMinifigs, themeName]);
 
   const displayThemeName = themeMinifigs.length > 0 ? themeMinifigs[0].theme_name : themeName?.replace(/-/g, ' ');
 

@@ -112,43 +112,50 @@ const ScrollToTop = ({ scrollContainerRef }: { scrollContainerRef: React.RefObje
     }
 
     if (navType === 'POP') {
-      const savedPos = sessionStorage.getItem(`scroll_pos_${key}`);
-      const targetY = savedPos ? parseInt(savedPos, 10) : 0;
-      
-      // Immediate attempt
-      element.scrollTo(0, targetY);
+      // Skip restoration if navigating to a theme detail page, 
+      // as it handles its own scroll restoration.
+      if (!location.pathname.startsWith('/themes/')) {
+        const savedPos = sessionStorage.getItem(`scroll_pos_${key}`);
+        const targetY = savedPos ? parseInt(savedPos, 10) : 0;
+        
+        // Immediate attempt
+        element.scrollTo(0, targetY);
 
-      // Retry with ResizeObserver for dynamic content
-      const observer = new ResizeObserver(() => {
-        // If we haven't reached the target yet and content is large enough
-        if (Math.abs(element.scrollTop - targetY) > 10) {
-           if (element.scrollHeight >= targetY + element.clientHeight) {
-             element.scrollTo(0, targetY);
-           }
-        }
-      });
-      observer.observe(element);
-      
-      // Disconnect after 2 seconds to prevent infinite loops
-      const timeout = setTimeout(() => observer.disconnect(), 2000);
-      return () => {
-        observer.disconnect();
-        clearTimeout(timeout);
-      };
-
+        // Retry with ResizeObserver for dynamic content
+        const observer = new ResizeObserver(() => {
+          // If we haven't reached the target yet and content is large enough
+          if (Math.abs(element.scrollTop - targetY) > 10) {
+             if (element.scrollHeight >= targetY + element.clientHeight) {
+               element.scrollTo(0, targetY);
+             }
+          }
+        });
+        observer.observe(element);
+        
+        // Disconnect after 2 seconds to prevent infinite loops
+        const timeout = setTimeout(() => observer.disconnect(), 2000);
+        return () => {
+          observer.disconnect();
+          clearTimeout(timeout);
+        };
+      }
     } else {
       // PUSH, REPLACE: Always scroll to top
-      // Force reset immediately by direct property assignment
-      element.scrollTop = 0;
-      element.scrollTo(0, 0);
-      
-      // Backup attempts for async rendering
-      setTimeout(() => {
-        if (element) {
-          element.scrollTop = 0;
-          element.scrollTo(0, 0);
-        }
-      }, 0);
+      // Skip scroll-to-top if navigating to a theme detail page, 
+      // as it handles its own scroll restoration.
+      if (!location.pathname.startsWith('/themes/')) {
+        // Force reset immediately by direct property assignment
+        element.scrollTop = 0;
+        element.scrollTo(0, 0);
+        
+        // Backup attempts for async rendering
+        setTimeout(() => {
+          if (element) {
+            element.scrollTop = 0;
+            element.scrollTo(0, 0);
+          }
+        }, 0);
+      }
     }
   }, [location.pathname, navType, key, scrollContainerRef]);
 

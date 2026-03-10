@@ -39,7 +39,7 @@ const MinifigCard: React.FC<MinifigCardProps> = ({
   return (
     <div 
       className={`
-        rounded-xl p-1.5 shadow-sm border group transition-all duration-200 relative 
+        rounded-xl p-1.5 shadow-sm border group transition-all duration-200 relative flex flex-col h-full
         ${isDark ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-white border-slate-100 shadow-sm'}
         ${isSelected ? 'border-indigo-500 ring-2 ring-indigo-500' : ''} 
         ${isSelectionMode ? 'cursor-pointer' : ''} 
@@ -105,12 +105,12 @@ const MinifigCard: React.FC<MinifigCardProps> = ({
         )}
       </div>
 
-      <div className="mt-2 px-1 pb-1">
+      <div className="mt-2 px-1 pb-1 flex-1 flex flex-col">
         <p className={`text-[9px] font-black uppercase tracking-wider mb-0.5 truncate opacity-90 ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`}>
           {minifig.theme_name}
         </p>
         <h3 
-          className={`text-[11px] font-bold line-clamp-1 leading-tight min-h-[1.2em] ${isDark ? 'text-white' : 'text-slate-900'}`}
+          className={`text-[11px] font-bold line-clamp-2 leading-tight flex-1 ${isDark ? 'text-white' : 'text-slate-900'}`}
         >
           {decodedName}
         </h3>

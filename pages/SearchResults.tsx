@@ -27,15 +27,26 @@ const decodeHTMLEntities = (text: string) => {
 const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggleOwned, onBulkToggleOwned, dataLoading }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [sortBy, setSortBy] = useState<SortOption>('id');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
-  
   const queryFromUrl = searchParams.get('q') || '';
+  
+  const [sortBy, setSortBy] = useState<SortOption>(() => {
+    const saved = sessionStorage.getItem(`search_results_sortby_${queryFromUrl}`);
+    return (saved as SortOption) || 'id';
+  });
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    const saved = sessionStorage.getItem(`search_results_sortorder_${queryFromUrl}`);
+    return (saved as SortOrder) || 'desc';
+  });
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(() => {
+    const saved = sessionStorage.getItem(`search_results_statusfilter_${queryFromUrl}`);
+    return (saved as StatusFilter) || 'ALL';
+  });
+  
   const [localSearch, setLocalSearch] = useState(queryFromUrl);
   const [setMatchedIds, setSetMatchedIds] = useState<Set<string>>(new Set());
   const [isSearchingSets, setIsSearchingSets] = useState(false);
   const isInitialMount = useRef(true);
+  const prevQuery = useRef(queryFromUrl);
 
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [isManageMode, setIsManageMode] = useState(false);
@@ -91,19 +102,17 @@ const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggl
   useEffect(() => {
     setLocalSearch(queryFromUrl);
     
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
+    if (queryFromUrl !== prevQuery.current) {
+      setSortBy('id');
+      setSortOrder('desc');
+      setStatusFilter('ALL');
+      setVisibleCount(48);
+      setIsManageMode(false);
+      setSelectedItems(new Set());
+      const root = document.getElementById('root');
+      if (root) root.scrollTo(0, 0);
+      prevQuery.current = queryFromUrl;
     }
-
-    setSortBy('id');
-    setSortOrder('desc');
-    setStatusFilter('ALL');
-    setVisibleCount(48);
-    setIsManageMode(false);
-    setSelectedItems(new Set());
-    const root = document.getElementById('root');
-    if (root) root.scrollTo(0, 0);
   }, [queryFromUrl]);
 
   const handleLocalSearch = (e: React.FormEvent) => {
@@ -113,7 +122,11 @@ const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggl
   };
 
   const toggleSortOrder = () => {
-    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    setSortOrder(prev => {
+      const next = prev === 'asc' ? 'desc' : 'asc';
+      sessionStorage.setItem(`search_results_sortorder_${queryFromUrl}`, next);
+      return next;
+    });
   };
 
   const filteredResults = useMemo(() => {
@@ -261,10 +274,40 @@ const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggl
         <div className="bg-white rounded-[2rem] p-3 shadow-xl border border-slate-100 mb-8 flex flex-col gap-4">
           <form onSubmit={handleLocalSearch} className="relative group"><input type="text" value={localSearch} onChange={(e) => setLocalSearch(e.target.value)} placeholder="Bricklink ID, set no, name" className="w-full h-11 pl-11 pr-5 bg-slate-50 border-none rounded-2xl focus:ring-1 focus:ring-indigo-500 font-bold text-xs" /><i className={`fas ${isSearchingSets ? 'fa-spinner animate-spin text-indigo-500' : 'fa-search text-slate-300'} absolute left-4 top-1/2 -translate-y-1/2 text-xs`}></i></form>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
-            <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100/50">{(['ALL', 'OWNED', 'MISSING'] as const).map(status => (<button key={status} onClick={() => setStatusFilter(status)} className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${statusFilter === status ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>{status}</button>))}</div>
+            <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100/50">
+              {(['ALL', 'OWNED', 'MISSING'] as const).map(status => (
+                <button 
+                  key={status} 
+                  onClick={() => {
+                    setStatusFilter(status);
+                    sessionStorage.setItem(`search_results_statusfilter_${queryFromUrl}`, status);
+                  }} 
+                  className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${statusFilter === status ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
             <div className="flex items-center gap-2">
               <button onClick={handleManageClick} className={`h-9 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isManageMode ? 'bg-rose-500 text-white' : 'bg-slate-900 text-white'}`}>{isManageMode ? 'Cancel' : 'Select'}</button>
-              <div className="relative group"><select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} className="appearance-none bg-slate-50 border border-slate-100 rounded-xl h-9 pl-4 pr-10 text-[9px] font-black text-slate-500 uppercase tracking-widest outline-none cursor-pointer focus:ring-1 focus:ring-indigo-500 transition-all"><option value="relevance">RELEVANCE</option><option value="value">PRICE</option><option value="year">YEAR</option><option value="name">NAME</option><option value="id">ID</option></select><i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[8px] text-slate-300 pointer-events-none"></i></div>
+              <div className="relative group">
+                <select 
+                  value={sortBy} 
+                  onChange={(e) => {
+                    const val = e.target.value as SortOption;
+                    setSortBy(val);
+                    sessionStorage.setItem(`search_results_sortby_${queryFromUrl}`, val);
+                  }} 
+                  className="appearance-none bg-slate-50 border border-slate-100 rounded-xl h-9 pl-4 pr-10 text-[9px] font-black text-slate-500 uppercase tracking-widest outline-none cursor-pointer focus:ring-1 focus:ring-indigo-500 transition-all"
+                >
+                  <option value="relevance">RELEVANCE</option>
+                  <option value="value">PRICE</option>
+                  <option value="year">YEAR</option>
+                  <option value="name">NAME</option>
+                  <option value="id">ID</option>
+                </select>
+                <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-[8px] text-slate-300 pointer-events-none"></i>
+              </div>
               {sortBy !== 'relevance' && (<button onClick={toggleSortOrder} className="w-9 h-9 flex items-center justify-center bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl active:scale-90 transition-all shadow-sm" aria-label="Toggle Sort Order"><i className={`fas ${sortOrder === 'asc' ? 'fa-arrow-up-wide-short' : 'fa-arrow-down-wide-short'} text-xs`}></i></button>)}
             </div>
           </div>

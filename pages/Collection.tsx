@@ -35,7 +35,10 @@ const formatCurrency = (val: number) => {
 const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal, dataLoading }) => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('id');
+  const [sortBy, setSortBy] = useState<SortOption>(() => {
+    const saved = sessionStorage.getItem('collection_sortby');
+    return (saved as SortOption) || 'id';
+  });
   const [groupingMode, setGroupingMode] = useState<GroupingMode>(() => {
     const saved = localStorage.getItem('my_minifig_grouping_mode');
     return (saved as GroupingMode) || 'theme';
@@ -81,7 +84,8 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
 
   useEffect(() => {
     sessionStorage.setItem('collection_visible_count', visibleCount.toString());
-  }, [visibleCount]);
+    sessionStorage.setItem('collection_sortby', sortBy);
+  }, [visibleCount, sortBy]);
   
   useEffect(() => {
     localStorage.setItem('my_minifig_grid_cols', gridCols.toString());
@@ -356,11 +360,11 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
             {groupingMode === 'theme' && nestedGroupedData ? (
               (Object.entries(nestedGroupedData) as [string, Record<string, Minifigure[]>][]).map(([themeName, subGroups]) => (
                 <section key={themeName} className="relative">
-                  <div className="flex items-center justify-between mb-4 border-b-2 border-slate-200 pb-2 sticky top-14 bg-slate-50/95 backdrop-blur-sm z-30 pt-2 px-1">
+                  <div className="flex items-center justify-between mb-4 border-b-2 border-slate-200 pb-2 bg-slate-50 pt-4 px-1 relative z-10">
                     <h2 className="text-[13px] font-black text-slate-900 uppercase italic tracking-tight">{themeName}</h2>
                     <Link to={`/themes/${generateSlug(themeName)}`} className="text-[8px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-widest">View Theme</Link>
                   </div>
-                  <div className="space-y-8">
+                  <div className="space-y-8 relative z-0">
                     {Object.entries(subGroups).map(([subName, figs]) => (
                       <div key={subName}>
                         <div className="flex items-center gap-2 mb-3 px-1">
