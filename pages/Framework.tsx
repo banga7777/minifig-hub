@@ -150,7 +150,6 @@ const Framework: React.FC<FrameworkProps> = ({ allMinifigs, onToggleOwned }) => 
                 <MinifigCard 
                   key={m.item_no} 
                   minifig={m} 
-                  variant="dark"
                   onToggleOwned={onToggleOwned}
                   onClick={() => navigate(`/minifigs/${m.item_no}-${generateSlug(m.name)}`)}
                 />
@@ -158,8 +157,6 @@ const Framework: React.FC<FrameworkProps> = ({ allMinifigs, onToggleOwned }) => 
           </div>
         </div>
       </section>
-
-
     </div>
   );
 };
