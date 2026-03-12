@@ -58,6 +58,18 @@ export interface UserProfile {
   email?: string;
 }
 
+export interface StatsProps {
+  ownedMinifigs: Minifigure[];
+  allMinifigs: Minifigure[];
+  user: UserProfile | null;
+}
+
+export interface ProfileProps {
+  user: UserProfile | null;
+  onLogout: () => void;
+  allMinifigs: Minifigure[];
+}
+
 export interface CollectorRank {
   rank: number;
   user_id: string;

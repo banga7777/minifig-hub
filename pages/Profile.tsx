@@ -1,23 +1,16 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../services/supabaseClient';
-import { Minifigure, UserProfile } from '../types';
+import { Minifigure, UserProfile, ProfileProps } from '../types';
 import SEO from '../components/SEO';
-import { useOwnedMinifigs } from '../src/hooks/useMinifigs';
 
-interface ProfileProps {
-  user: UserProfile | null;
-  onLogout: () => void;
-}
-
-const Profile: React.FC<ProfileProps> = ({ user, onLogout }) => {
-  const { data: ownedMinifigs = [], isLoading: collectionLoading } = useOwnedMinifigs(user?.id);
+const Profile: React.FC<ProfileProps> = ({ user, onLogout, allMinifigs }) => {
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
-  const ownedCount = useMemo(() => ownedMinifigs.length, [ownedMinifigs]);
+  const ownedCount = useMemo(() => allMinifigs.filter(m => m.owned).length, [allMinifigs]);
   const level = Math.floor(ownedCount / 100);
 
   useEffect(() => {
