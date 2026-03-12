@@ -6,6 +6,7 @@ import { generateSlug } from '../utils/slug';
 import MinifigCard from '../components/MinifigCard';
 import { supabase } from '../services/supabaseClient';
 import { AdMobService } from '../services/adMobService';
+import { useMinifigDetail, useThemeMinifigs } from '../src/hooks/useMinifigs';
 
 const AMAZON_TAG = 'minifighub-20'; 
 const EBAY_CAMPID = '5339000000';  
@@ -17,9 +18,7 @@ interface AppearanceSummary {
 
 interface MinifigDetailProps {
   onToggleOwned: (id: string) => void;
-  allMinifigs: Minifigure[];
   user: UserProfile | null;
-  dataLoading: boolean;
 }
 
 const decodeHTMLEntities = (text: string) => {
@@ -40,22 +39,14 @@ const stripSetSuffix = (setNo: string) => {
 
 import SEO from '../components/SEO';
 
-const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifigs, user, dataLoading }) => {
+const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, user }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [appearanceSummary, setAppearanceSummary] = useState<AppearanceSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   
-  const minifig = useMemo(() => {
-    if (!id) return undefined;
-    // Try exact match first
-    let found = allMinifigs.find(m => m.item_no === id);
-    if (found) return found;
-
-    // If not found, it might be a slug-based ID (item_no-slug)
-    // We look for a minifig whose item_no matches the beginning of the ID followed by a hyphen
-    return allMinifigs.find(m => id.startsWith(`${m.item_no}-`));
-  }, [allMinifigs, id]);
+  const { data: minifig, isLoading: detailLoading } = useMinifigDetail(id || '', user?.id);
+  const { data: themeMinifigs = [] } = useThemeMinifigs(minifig?.theme_name || '', user?.id);
 
   useEffect(() => {
     if (!minifig) return;
@@ -109,10 +100,8 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifig
     const targetTheme = minifig.theme_name;
     const targetSub = minifig.sub_category;
     const currentId = minifig.item_no;
-    const candidates: Minifigure[] = [];
-    for (let i = 0; i < allMinifigs.length; i++) {
-        if (allMinifigs[i].theme_name === targetTheme && allMinifigs[i].item_no !== currentId) candidates.push(allMinifigs[i]);
-    }
+    const candidates = themeMinifigs.filter(m => m.item_no !== currentId);
+    
     const primaryName = minifig.name.split(/[, (]/)[0].toLowerCase();
     const scoredCandidates = candidates.map(m => {
       let score = 50;
@@ -122,9 +111,9 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifig
     });
     scoredCandidates.sort((a, b) => b.score !== a.score ? b.score - a.score : b.minifig.year_released - a.minifig.year_released);
     return scoredCandidates.slice(0, 15).map(item => item.minifig);
-  }, [allMinifigs, minifig]);
+  }, [themeMinifigs, minifig]);
 
-  if (dataLoading) {
+  if (detailLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>

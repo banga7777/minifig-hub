@@ -1,68 +1,44 @@
 
 import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Minifigure, Theme } from '../types';
+import { UserProfile, Theme } from '../types';
 import SEO from '../components/SEO';
 import { generateSlug } from '../utils/slug';
+import { useThemes, useThemeProgress } from '../src/hooks/useMinifigs';
 
 interface ThemeListProps {
-  allMinifigs: Minifigure[];
+  user: UserProfile | null;
 }
 
 type SortOption = 'MOST_FIGS' | 'PROGRESS' | 'NAME';
 type StatusFilter = 'ALL' | 'COMPLETED' | 'STARTED' | 'NOT_STARTED';
 
-const ThemeList: React.FC<ThemeListProps> = ({ allMinifigs }) => {
+const ThemeList: React.FC<ThemeListProps> = ({ user }) => {
   const navigate = useNavigate();
+  const { data: themes = [], isLoading: themesLoading } = useThemes();
+  const { data: progress = {} } = useThemeProgress(user?.id);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('MOST_FIGS');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
 
   const themesData = useMemo(() => {
-    const themeMap = new Map<string, { count: number; owned: number; representativeImage: string; latestYear: number }>();
-    
-    allMinifigs.forEach(m => {
-      if (!themeMap.has(m.theme_name)) {
-        themeMap.set(m.theme_name, { 
-          count: 0, 
-          owned: 0, 
-          representativeImage: m.image_url, 
-          latestYear: m.year_released 
-        });
-      }
+    return themes.map((t, index) => {
+      const ownedCount = progress[t.name] || 0;
+      const completionRate = t.minifig_count > 0 ? Math.round((ownedCount / t.minifig_count) * 100) : 0;
+      const customImg = localStorage.getItem(`theme_img_v1_${t.name}`);
       
-      const current = themeMap.get(m.theme_name)!;
-      let newImage = current.representativeImage;
-      let newYear = current.latestYear;
-      
-      if (m.year_released > current.latestYear) {
-        newImage = m.image_url;
-        newYear = m.year_released;
-      }
-
-      themeMap.set(m.theme_name, { 
-        count: current.count + 1, 
-        owned: current.owned + (m.owned ? 1 : 0),
-        representativeImage: newImage,
-        latestYear: newYear
-      });
-    });
-
-    return Array.from(themeMap.entries()).map(([name, data], index) => {
-      const customImg = localStorage.getItem(`theme_img_v1_${name}`);
-      const completionRate = data.count > 0 ? Math.round((data.owned / data.count) * 100) : 0;
       return {
         id: String(index),
-        name,
-        slug: generateSlug(name),
-        minifig_count: data.count,
-        owned_count: data.owned,
+        name: t.name,
+        slug: generateSlug(t.name),
+        minifig_count: t.minifig_count,
+        owned_count: ownedCount,
         completionRate,
-        image_url: data.representativeImage,
+        image_url: t.image_url,
         custom_image_url: customImg || undefined
       };
     });
-  }, [allMinifigs]);
+  }, [themes, progress]);
 
   const filteredAndSortedThemes = useMemo(() => {
     let result = themesData.filter(t => {
@@ -84,6 +60,14 @@ const ThemeList: React.FC<ThemeListProps> = ({ allMinifigs }) => {
 
     return result;
   }, [themesData, searchTerm, sortBy, statusFilter]);
+
+  if (themesLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
+        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-40 bg-slate-50 min-h-screen">

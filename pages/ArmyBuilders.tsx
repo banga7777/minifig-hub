@@ -255,7 +255,7 @@ const ArmyBuilders: React.FC<ArmyBuildersProps> = ({ allMinifigs, onToggleOwned 
       <nav className="sticky top-0 z-[110] bg-slate-950/80 backdrop-blur-xl border-b border-white/5 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/lego-star-wars-minifigure-framework')} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">
+            <button onClick={() => navigate('/lego-star-wars-minifigure-archive')} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors">
               <i className="fas fa-arrow-left"></i> Archive
             </button>
             <span className="text-slate-700">/</span>

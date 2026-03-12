@@ -2,16 +2,16 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import MinifigCard from '../components/MinifigCard';
-import { Minifigure } from '../types';
+import { Minifigure, UserProfile } from '../types';
 import { generateSlug } from '../utils/slug';
 import { supabase } from '../services/supabaseClient';
 import SEO from '../components/SEO';
+import { useSearchMinifigs } from '../src/hooks/useMinifigs';
 
 interface SearchResultsProps {
-  allMinifigs: Minifigure[];
   onToggleOwned: (id: string) => void;
   onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
-  dataLoading: boolean;
+  user: UserProfile | null;
 }
 
 type SortOption = 'relevance' | 'year' | 'name' | 'id' | 'value';
@@ -24,10 +24,11 @@ const decodeHTMLEntities = (text: string) => {
   return textArea.value;
 };
 
-const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggleOwned, onBulkToggleOwned, dataLoading }) => {
+const SearchResults: React.FC<SearchResultsProps> = ({ onToggleOwned, onBulkToggleOwned, user }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryFromUrl = searchParams.get('q') || '';
+  const { data: searchResults = [], isLoading: searchLoading } = useSearchMinifigs(queryFromUrl, user?.id);
   
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     const saved = sessionStorage.getItem(`search_results_sortby_${queryFromUrl}`);
@@ -130,69 +131,28 @@ const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggl
   };
 
   const filteredResults = useMemo(() => {
-    const q = queryFromUrl.trim().toLowerCase();
-    if (!q && setMatchedIds.size === 0) return [];
+    let result = searchResults;
     
-    const terms = q.split(/\s+/).filter(t => t.length > 0);
-    const normalizedQ = q.replace(/\s+/g, '');
-
-    let resultWithScores = allMinifigs.map(m => {
-      const mName = m.decoded_name.toLowerCase();
-      const mID = m.item_no.toLowerCase();
-      const mTheme = m.theme_name.toLowerCase();
-      const mSub = (m.sub_category || '').toLowerCase();
-      
-      let score = 0;
-      const matchesSet = setMatchedIds.has(m.item_no);
-      
-      let matchesText = false;
-      if (terms.length > 0) {
-        matchesText = true;
-        for (let i = 0; i < terms.length; i++) {
-          const t = terms[i];
-          if (!mName.includes(t) && !mID.includes(t) && !mTheme.includes(t) && !mSub.includes(t)) {
-            matchesText = false;
-            break;
-          }
-        }
-      }
-
-      if (!matchesText && !matchesSet) return { minifig: m, score: 0 };
-      
-      score += 100;
-      if (matchesSet) score += 5000;
-      if (mID === q || mID === normalizedQ) score += 10000;
-      if (mName === q || mName === normalizedQ) score += 3000;
-      else if (mName.includes(q) || mName.includes(normalizedQ)) score += 1000;
-      
-      for (let i = 0; i < terms.length; i++) {
-        if (mName.includes(terms[i])) score += 500;
-      }
-      
-      return { minifig: m, score };
-    }).filter(item => item.score > 0);
-
-    let finalResult = resultWithScores.filter(item => {
-      if (statusFilter === 'ALL') return true;
-      if (statusFilter === 'OWNED') return item.minifig.owned;
-      if (statusFilter === 'MISSING') return !item.minifig.owned;
-      return true;
-    });
-
-    return finalResult.sort((a, b) => {
+    if (statusFilter !== 'ALL') {
+      result = result.filter(m => statusFilter === 'OWNED' ? m.owned : !m.owned);
+    }
+    
+    result = [...result].sort((a, b) => {
       let comparison = 0;
-      if (sortBy === 'relevance') {
-        comparison = b.score - a.score;
-        return comparison;
+      if (sortBy === 'name') {
+        comparison = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      } else if (sortBy === 'id') {
+        comparison = a.item_no.localeCompare(b.item_no);
+      } else if (sortBy === 'year') {
+        comparison = a.year_released - b.year_released;
+      } else if (sortBy === 'value') {
+        comparison = (a.last_stock_min_price || 0) - (b.last_stock_min_price || 0);
       }
-      if (sortBy === 'name') comparison = a.minifig.decoded_name.localeCompare(b.minifig.decoded_name);
-      else if (sortBy === 'id') comparison = a.minifig.item_no.localeCompare(b.minifig.item_no);
-      else if (sortBy === 'year') comparison = a.minifig.year_released - b.minifig.year_released;
-      else if (sortBy === 'value') comparison = (a.minifig.last_stock_min_price || 0) - (b.minifig.last_stock_min_price || 0);
-      
       return sortOrder === 'asc' ? comparison : -comparison;
-    }).map(item => item.minifig);
-  }, [allMinifigs, queryFromUrl, sortBy, sortOrder, statusFilter, setMatchedIds]);
+    });
+    
+    return result;
+  }, [searchResults, sortBy, sortOrder, statusFilter]);
 
   const handleBulkAction = async (shouldOwn: boolean) => {
     const itemNos = Array.from(selectedItems);
@@ -224,7 +184,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggl
       }
       setSelectedItems(newSelection);
     } else {
-      const minifig = allMinifigs.find(m => m.item_no === itemNo);
+      const minifig = searchResults.find((m: Minifigure) => m.item_no === itemNo);
       if (minifig) {
         navigate(`/minifigs/${itemNo}-${generateSlug(minifig.name)}`);
       }
@@ -253,7 +213,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggl
 
   const visibleResults = useMemo(() => filteredResults.slice(0, visibleCount), [filteredResults, visibleCount]);
   
-  if (dataLoading) {
+  if (searchLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>

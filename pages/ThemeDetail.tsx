@@ -2,30 +2,31 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import MinifigCard from '../components/MinifigCard';
-import { Minifigure } from '../types';
+import { Minifigure, UserProfile } from '../types';
 import SEO from '../components/SEO';
 import { generateSlug } from '../utils/slug';
+import { useThemeMinifigs } from '../src/hooks/useMinifigs';
 
 interface ThemeDetailProps {
   onToggleOwned: (id: string) => void;
   onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
-  allMinifigs: Minifigure[];
+  user: UserProfile | null;
   onShowSubCatModal: (isOpen: boolean) => void; 
-  dataLoading: boolean;
 }
 
 type SortOption = 'newest' | 'name' | 'id' | 'value';
 type SortOrder = 'asc' | 'desc';
 type OwnedFilter = 'all' | 'owned' | 'missing';
 
-const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOwned, allMinifigs, onShowSubCatModal, dataLoading }) => {
+const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOwned, user, onShowSubCatModal }) => {
   const { themeName } = useParams<{ themeName: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { data: themeMinifigs = [], isLoading: themeLoading } = useThemeMinifigs(themeName || '', user?.id);
   
   // Restore scroll position with retry mechanism
   React.useLayoutEffect(() => {
-    if (dataLoading) return;
+    if (themeLoading) return;
     
     const savedPos = sessionStorage.getItem(`scroll_pos_${location.key}`);
     if (!savedPos) return;
@@ -49,7 +50,7 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
     }, 100); // Check every 100ms
 
     return () => clearInterval(interval);
-  }, [dataLoading, location.key]);
+  }, [themeLoading, location.key]);
   const [searchTerm, setSearchTerm] = useState(() => {
     const saved = sessionStorage.getItem(`theme_detail_search_${themeName}`);
     console.log(`[Debug] Initial searchTerm for ${themeName}:`, saved);
@@ -119,11 +120,6 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
     setIsManageMode(false);
     setSelectedItems(new Set());
   }, [searchTerm, activeSubCat, filterOwned, sortBy, sortOrder]);
-
-  const themeMinifigs = useMemo(() => {
-    const targetSlug = themeName?.toLowerCase();
-    return allMinifigs.filter(m => m.theme_slug === targetSlug);
-  }, [allMinifigs, themeName]);
 
   useEffect(() => {
     // Check if user already has a preference
@@ -260,7 +256,7 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
   const completionRate = totalCount > 0 ? (ownedCount / totalCount) * 100 : 0;
   const defaultImage = themeMinifigs[0]?.image_url;
   
-  if (dataLoading) {
+  if (themeLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>

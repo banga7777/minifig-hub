@@ -4,17 +4,17 @@ import { useNavigate, Link } from 'react-router-dom';
 import MinifigCard from '../components/MinifigCard';
 import { Minifigure, UserProfile } from '../types';
 import { generateSlug } from '../utils/slug';
+import { decodeHTMLEntities } from '../utils/text';
 import { supabase } from '../services/supabaseClient';
 import SEO from '../components/SEO';
+import { useOwnedMinifigs, useMinifigStats } from '../src/hooks/useMinifigs';
 
 interface CollectionProps {
-  allMinifigs: Minifigure[];
   onToggleOwned: (id: string) => void;
   onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
   user: UserProfile | null;
   onShowSettings: (isOpen: boolean) => void; 
   onShowDeleteModal: (isOpen: boolean) => void;
-  dataLoading: boolean;
 }
 
 type SortOption = 'id' | 'newest' | 'name' | 'theme' | 'value';
@@ -22,18 +22,16 @@ type GroupingMode = 'theme' | 'none';
 type GridCols = 2 | 3 | 4 | 5;
 type NestedGroup = Record<string, Record<string, Minifigure[]>>;
 
-const decodeHTMLEntities = (text: string) => {
-  const textArea = document.createElement('textarea');
-  textArea.innerHTML = text;
-  return textArea.value;
-};
-
 const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
 };
 
-const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal, dataLoading }) => {
+const Collection: React.FC<CollectionProps> = ({ onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal }) => {
   const navigate = useNavigate();
+  const { data: ownedMinifigs = [], isLoading: collectionLoading } = useOwnedMinifigs(user?.id);
+  const { data: stats } = useMinifigStats();
+  const totalCount = stats?.totalCount || 0;
+
   const [filter, setFilter] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     const saved = sessionStorage.getItem('collection_sortby');
@@ -108,12 +106,9 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
     setSelectedItems(new Set());
   }, [filter, sortBy, groupingMode]);
 
-  const ownedMinifigs = useMemo(() => allMinifigs.filter(m => m.owned), [allMinifigs]);
-  
   const totalAvgValue = useMemo(() => ownedMinifigs.reduce((sum, m) => sum + (m.last_stock_avg_price || 0), 0), [ownedMinifigs]);
   const totalMinValue = useMemo(() => ownedMinifigs.reduce((sum, m) => sum + (m.last_stock_min_price || 0), 0), [ownedMinifigs]);
   
-  const totalCount = allMinifigs.length;
   const completionRate = totalCount > 0 ? (ownedMinifigs.length / totalCount) * 100 : 0;
   const level = Math.floor(ownedMinifigs.length / 100);
 
@@ -237,7 +232,7 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
 
   const gridClass = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5' }[gridCols];
   
-  if (dataLoading) {
+  if (collectionLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>

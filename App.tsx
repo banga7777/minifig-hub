@@ -246,13 +246,13 @@ const MainContent: React.FC<MainContentProps> = ({
           </div>
         }>
           <Routes>
-            <Route path="/" element={<PageWrapper><Home onToggleOwned={onToggleOwned} ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} topMinifigs={topMinifigs} marketMovers={marketMovers} volumeMovers={volumeMovers} collectorRanking={collectorRanking} onRetryFetch={onRetryFetch} /></PageWrapper>} />
+            <Route path="/" element={<PageWrapper><Home onToggleOwned={onToggleOwned} ownedMinifigs={ownedMinifigs} user={user} topMinifigs={topMinifigs} marketMovers={marketMovers} volumeMovers={volumeMovers} collectorRanking={collectorRanking} onRetryFetch={onRetryFetch} /></PageWrapper>} />
             <Route path="/auth" element={<PageWrapper>{user ? <Navigate to="/collection" /> : <Auth onShowLegalModal={(isOpen: boolean) => updateModalState('authLegal', isOpen)} />}</PageWrapper>} />
-            <Route path="/collection/*" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Collection allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} user={user} onShowSettings={(isOpen: boolean) => updateModalState('collectionSettings', isOpen)} onShowDeleteModal={(isOpen: boolean) => updateModalState('collectionDelete', isOpen)} dataLoading={dataLoading} /></ProtectedRoute></PageWrapper>} />
+            <Route path="/collection/*" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Collection onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} user={user} onShowSettings={(isOpen: boolean) => updateModalState('collectionSettings', isOpen)} onShowDeleteModal={(isOpen: boolean) => updateModalState('collectionDelete', isOpen)} /></ProtectedRoute></PageWrapper>} />
             <Route path="/stats" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Stats ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} /></ProtectedRoute></PageWrapper>} />
-            <Route path="/themes" element={<PageWrapper><ThemeList allMinifigs={allMinifigs} /></PageWrapper>} />
-            <Route path="/minifigs/:id/*" element={<PageWrapper><MinifigDetail onToggleOwned={onToggleOwned} allMinifigs={allMinifigs} user={user} dataLoading={dataLoading} /></PageWrapper>} />
-            <Route path="/themes/:themeName/*" element={<PageWrapper><ThemeDetail onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} allMinifigs={allMinifigs} onShowSubCatModal={(isOpen: boolean) => updateModalState('themeDetailSubCat', isOpen)} dataLoading={dataLoading} /></PageWrapper>} />
+            <Route path="/themes" element={<PageWrapper><ThemeList user={user} /></PageWrapper>} />
+            <Route path="/minifigs/:id/*" element={<PageWrapper><MinifigDetail onToggleOwned={onToggleOwned} user={user} /></PageWrapper>} />
+            <Route path="/themes/:themeName/*" element={<PageWrapper><ThemeDetail onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} user={user} onShowSubCatModal={(isOpen: boolean) => updateModalState('themeDetailSubCat', isOpen)} /></PageWrapper>} />
             <Route path="/character/troopers" element={<PageWrapper><CharacterHub allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
             <Route path="/character/troopers/:factionId" element={<PageWrapper><TrooperSubHub allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
             <Route path="/character/troopers/:factionId/:unitId" element={<PageWrapper><TrooperSubHub allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
@@ -261,7 +261,7 @@ const MainContent: React.FC<MainContentProps> = ({
             <Route path="/role/character-centerpieces/*" element={<PageWrapper><CharacterCenterpieces allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
             <Route path="/role/elite-specialists/*" element={<PageWrapper><EliteSpecialists allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
             <Route path="/role/support-units/*" element={<PageWrapper><SupportUnits allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} /></PageWrapper>} />
-            <Route path="/search/*" element={<PageWrapper><SearchResults allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} dataLoading={dataLoading} /></PageWrapper>} />
+            <Route path="/search/*" element={<PageWrapper><SearchResults onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} user={user} /></PageWrapper>} />
             <Route path="/profile/*" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Profile user={user} onLogout={onLogout} allMinifigs={allMinifigs} /></ProtectedRoute></PageWrapper>} />
             <Route path="/privacy-policy" element={<PageWrapper><PrivacyPolicy /></PageWrapper>} />
             <Route path="/terms-of-service" element={<PageWrapper><TermsOfService /></PageWrapper>} />
@@ -400,10 +400,6 @@ const STARTER_TREND_IDS = [
   'hp001', 'sw0188', 'sw0002', 'sh0031', 'njo001'
 ];
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
-const queryClient = new QueryClient();
-
 const decodeHTMLEntities = (text: string) => {
   if (!text) return '';
   const textArea = document.createElement('textarea');
@@ -411,13 +407,18 @@ const decodeHTMLEntities = (text: string) => {
   return textArea.value;
 };
 
+import { useTopMinifigs, useCollectorRanking, useMarketMovers, useMinifigStats } from './src/hooks/useMinifigs';
+import { useQueryClient } from '@tanstack/react-query';
+
 const App: React.FC = () => {
+  const queryClient = useQueryClient();
   const [allMinifigs, setAllMinifigs] = useState<Minifigure[]>([]);
-  const [topMinifigs, setTopMinifigs] = useState<PopularMinifig[]>([]);
-  const [collectorRanking, setCollectorRanking] = useState<CollectorRank[]>([]);
-  const [marketMovers, setMarketMovers] = useState<MarketMover[]>([]);
+  const { data: topMinifigs = [] } = useTopMinifigs();
+  const { data: collectorRanking = [] } = useCollectorRanking();
+  const { data: marketMovers = [] } = useMarketMovers();
+  const { data: stats } = useMinifigStats();
   const [volumeMovers, setVolumeMovers] = useState<MarketMover[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -455,321 +456,38 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    const fetchTrends = async () => {
-      try {
-        const { data: trendData, error: trendError } = await supabase
-          .from('popular_minifigs_view')
-          .select('*')
-          .limit(10)
-          .abortSignal(controller.signal);
-
-        if (trendError || !trendData || trendData.length === 0) {
-          const { data: details, error: detailError } = await supabase
-            .from('minifigures')
-            .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_stock_min_price, last_stock_avg_price')
-            .in('item_no', STARTER_TREND_IDS)
-            .abortSignal(controller.signal);
-
-          if (!detailError && details) {
-            const fallback = STARTER_TREND_IDS.map((id, idx) => {
-              const base = details.find(d => d.item_no === id);
-              if (!base) return null;
-              const name = base.name_en || 'Untitled';
-              const themeName = base.main_category || 'Other';
-              return {
-                item_no: base.item_no,
-                name: name,
-                decoded_name: decodeHTMLEntities(name),
-                theme_name: themeName,
-                theme_slug: generateSlug(themeName),
-                sub_category: base.sub_category || '',
-                image_url: base.image_url || '',
-                category_id: base.category_id || 0,
-                year_released: base.year_released || 0,
-                owned: false,
-                rank: idx + 1,
-                owner_count: 0,
-                last_stock_min_price: base.last_stock_min_price,
-                last_stock_avg_price: base.last_stock_avg_price
-              };
-            }).filter(Boolean) as PopularMinifig[];
-            setTopMinifigs(fallback);
-          }
-          return;
-        }
-
-        const topList = trendData.map((m: any, idx: number) => {
-          const name = m.name_en || 'Untitled';
-          const themeName = m.main_category || 'Other';
-          return {
-            item_no: m.item_no,
-            name: name,
-            decoded_name: decodeHTMLEntities(name),
-            theme_name: themeName,
-            theme_slug: generateSlug(themeName),
-            sub_category: m.sub_category || '',
-            image_url: m.image_url || '',
-            category_id: m.category_id || 0,
-            year_released: m.year_released || 0,
-            owned: false,
-            rank: idx + 1,
-            owner_count: parseInt(m.owner_count || 0),
-            last_stock_min_price: m.last_stock_min_price,
-            last_stock_avg_price: m.last_stock_avg_price
-          };
-        });
-
-        setTopMinifigs(topList);
-      } catch (err: any) {
-        if (err.name !== 'AbortError') console.error("Trends View Fetch Error:", err);
-      }
-    };
-    
-    const fetchRanking = async () => {
-      try {
-        const { data: rankingData, error: rankingError } = await supabase.rpc('get_collector_ranking', {}).abortSignal(controller.signal);
-        if (rankingError) throw rankingError;
-
-        if (rankingData) {
-          const rankedList: CollectorRank[] = rankingData.map((item: any, index: number) => ({
-            rank: index + 1,
-            user_id: item.user_id,
-            username: item.username,
-            owned_count: item.owned_count,
-            avatar_url: item.avatar_url
-          }));
-          setCollectorRanking(rankedList);
-        }
-      } catch (err: any) {
-        if (err.name !== 'AbortError') console.error("Collector ranking fetch error:", err);
-        setCollectorRanking([]);
-      }
-    };
-
-    const fetchMarketMovers = async () => {
-      try {
-        const { data: gainerData, error: gainerError } = await supabase
-          .from('market_movers_view')
-          .select('item_no, name, image_url, current_price, change_percent, total_quantity')
-          .not('change_percent', 'is', null)
-          .order('change_percent', { ascending: false })
-          .limit(20)
-          .abortSignal(controller.signal);
-        
-        if (gainerError) {
-          console.error("Gainer Fetch Error:", gainerError);
-        } else if (gainerData && gainerData.length > 0) {
-          setMarketMovers(gainerData.map(m => ({
-            item_no: m.item_no,
-            name: m.name || 'Unknown',
-            image_url: m.image_url,
-            current_price: parseFloat(m.current_price || 0),
-            change_percent: parseFloat(m.change_percent || 0),
-            total_quantity: parseInt(m.total_quantity || 0)
-          })));
-        } else {
-          const { data: fallbackGainer } = await supabase
-            .from('market_movers_view')
-            .select('item_no, name, image_url, current_price, change_percent, total_quantity')
-            .order('current_price', { ascending: false })
-            .limit(20)
-            .abortSignal(controller.signal);
-          
-          if (fallbackGainer) {
-            setMarketMovers(fallbackGainer.map(m => ({
-              item_no: m.item_no,
-              name: m.name || 'Unknown',
-              image_url: m.image_url,
-              current_price: parseFloat(m.current_price || 0),
-              change_percent: parseFloat(m.change_percent || 0),
-              total_quantity: parseInt(m.total_quantity || 0)
-            })));
-          }
-        }
-
-        const { data: volumeData, error: volumeError } = await supabase
-          .from('market_movers_view')
-          .select('item_no, name, image_url, current_price, change_percent, total_quantity')
-          .order('total_quantity', { ascending: false })
-          .limit(20)
-          .abortSignal(controller.signal);
-        
-        if (volumeError) {
-          console.error("Volume Fetch Error:", volumeError);
-        } else if (volumeData && volumeData.length > 0) {
-          setVolumeMovers(volumeData.map(m => ({
-            item_no: m.item_no,
-            name: m.name || 'Unknown',
-            image_url: m.image_url,
-            current_price: parseFloat(m.current_price || 0),
-            change_percent: parseFloat(m.change_percent || 0),
-            total_quantity: parseInt(m.total_quantity || 0)
-          })));
-        }
-      } catch (err: any) {
-        if (err.name !== 'AbortError') console.error("Market movers fetch error:", err);
-      }
-    };
-
-    fetchTrends();
-    fetchRanking();
-    fetchMarketMovers();
-
-    return () => controller.abort();
+    // Global data fetching is now handled by React Query hooks
   }, [fetchTrigger]);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const fetchData = async () => {
-      if (allMinifigs.length === 0) {
-        setDataLoading(true);
-      }
-      setHasError(false);
-      try {
-        // Fetch minifigures in chunks to avoid payload limits
-        let allRawMinifigs: any[] = [];
-        let page = 0;
-        const pageSize = 1000; // Reduced to 1000 for better stability
-        let hasMore = true;
-
-        while (hasMore) {
-          let retries = 3;
-          let success = false;
-          
-          while (retries > 0 && !success) {
-            try {
-              const { data, error } = await supabase
-                .from('minifigures')
-                .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_stock_min_price, last_stock_avg_price, stock_updated_at')
-                .range(page * pageSize, (page + 1) * pageSize - 1)
-                .abortSignal(controller.signal);
-              
-              if (error) throw error;
-              
-              if (data && data.length > 0) {
-                allRawMinifigs = [...allRawMinifigs, ...data];
-                if (data.length < pageSize) hasMore = false;
-                else page++;
-              } else {
-                hasMore = false;
-              }
-              success = true;
-            } catch (e: any) {
-              // Check if it's an abort error, if so, don't retry and rethrow
-              if (e.name === 'AbortError' || e.message?.includes('AbortError')) throw e;
-              
-              console.warn(`Fetch failed (page ${page}), retrying... (${retries} left)`, e);
-              retries--;
-              if (retries === 0) throw e;
-              await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries))); // Exponential backoff: 1s, 2s, 3s
-            }
-          }
-        }
-        
-        // Fetch market movers in chunks
-        let allMarketMovers: any[] = [];
-        let mmPage = 0;
-        const mmPageSize = 1000; // Reduced to 1000
-        let mmHasMore = true;
-
-        while (mmHasMore) {
-          const { data, error } = await supabase
-            .from('market_movers_view')
-            .select('item_no, change_percent')
-            .range(mmPage * mmPageSize, (mmPage + 1) * mmPageSize - 1)
-            .abortSignal(controller.signal);
-          
-          if (error) {
-            console.warn('Error fetching market movers chunk:', error);
-            break; // Continue with partial data
-          }
-          
-          if (data && data.length > 0) {
-            allMarketMovers = [...allMarketMovers, ...data];
-            if (data.length < mmPageSize) mmHasMore = false;
-            else mmPage++;
-          } else {
-            mmHasMore = false;
-          }
-        }
-        
-        const changePercentMap = new Map<string, number>();
-        if (allMarketMovers.length > 0) {
-          allMarketMovers.forEach(m => {
-            if (m.item_no && m.change_percent !== undefined) {
-              changePercentMap.set(m.item_no, parseFloat(m.change_percent));
-            }
-          });
-        }
-
-        let ownedIds = new Set<string>();
-        if (user) {
-          const { data: owned, error: ownedError } = await supabase
-            .from('user_owned_minifigs')
-            .select('minifig_id')
-            .eq('user_id', user.id)
-            .abortSignal(controller.signal);
-          if (!ownedError && owned) owned.forEach(o => ownedIds.add(o.minifig_id));
-        }
-
-        const enriched: Minifigure[] = allRawMinifigs.map((m: any) => {
-          const itemNo = m.item_no || 'unknown';
-          const themeName = m.main_category || 'Other';
-          const name = m.name_en || 'Untitled';
-          return {
-            item_no: itemNo, 
-            name: name, 
-            decoded_name: decodeHTMLEntities(name),
-            theme_name: themeName, 
-            theme_slug: generateSlug(themeName),
-            sub_category: m.sub_category || '', 
-            image_url: m.image_url || `https://img.bricklink.com/ItemImage/MN/0/${itemNo.toUpperCase()}.png`, 
-            category_id: m.category_id || 0, 
-            year_released: m.year_released || 0, 
-            owned: ownedIds.has(itemNo),
-            last_stock_min_price: m.last_stock_min_price,
-            last_stock_avg_price: m.last_stock_avg_price,
-            change_percent: changePercentMap.get(itemNo),
-            stock_updated_at: m.stock_updated_at
-          };
-        });
-        
-        setAllMinifigs(enriched);
-        setTopMinifigs(prev => prev.map(m => ({ 
-          ...m, 
-          owned: ownedIds.has(m.item_no),
-          change_percent: changePercentMap.get(m.item_no)
-        })));
-
-      } catch (err: any) {
-        const isAbortError = err.name === 'AbortError' || err.message?.includes('AbortError') || err.code === '20' || err.message?.includes('signal is aborted');
-        if (!isAbortError) {
-          setHasError(true);
-          console.error("Sync Error:", err);
-        }
-      } finally {
-        // Only set loading to false if not aborted to avoid state updates on unmounted component
-        // or flickering during rapid re-renders
-        setDataLoading(false);
-      }
-    };
-
-    fetchData();
-    return () => controller.abort();
-  }, [user, fetchTrigger]);
+  // Removed the massive fetchData useEffect
 
   const toggleOwned = async (itemNo: string) => {
     if (!user) { if (window.confirm("Sign in required. Go to Login page?")) navigate('/auth'); return; }
-    const idx = allMinifigs.findIndex(m => m.item_no === itemNo);
-    if (idx === -1) return;
-    const original = allMinifigs[idx].owned;
+    
+    // Optimistic update for UI responsiveness
     setAllMinifigs(prev => prev.map(m => m.item_no === itemNo ? { ...m, owned: !m.owned } : m));
+    
     try {
-      if (!original) await supabase.from('user_owned_minifigs').upsert({ minifig_id: itemNo, user_id: user.id });
-      else await supabase.from('user_owned_minifigs').delete().eq('minifig_id', itemNo).eq('user_id', user.id);
+      const { data: existing } = await supabase
+        .from('user_owned_minifigs')
+        .select('minifig_id')
+        .eq('minifig_id', itemNo)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!existing) {
+        await supabase.from('user_owned_minifigs').upsert({ minifig_id: itemNo, user_id: user.id });
+      } else {
+        await supabase.from('user_owned_minifigs').delete().eq('minifig_id', itemNo).eq('user_id', user.id);
+      }
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['ownedMinifigs', user.id] });
       setFetchTrigger(c => c + 1);
-    } catch (err) { setAllMinifigs(prev => prev.map(m => m.item_no === itemNo ? { ...m, owned: original } : m)); }
+    } catch (err) { 
+      // Rollback on error
+      console.error("Toggle Error:", err);
+    }
   };
 
   const bulkToggleOwned = async (itemNos: string[], shouldOwn: boolean) => {
@@ -780,8 +498,9 @@ const App: React.FC = () => {
         if (shouldOwn) await supabase.from('user_owned_minifigs').upsert(chunk.map(id => ({ minifig_id: id, user_id: user.id })));
         else await supabase.from('user_owned_minifigs').delete().in('minifig_id', chunk).eq('user_id', user.id);
       }
-      const ids = new Set(itemNos);
-      setAllMinifigs(prev => prev.map(m => ids.has(m.item_no) ? { ...m, owned: shouldOwn } : m));
+      
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['ownedMinifigs', user.id] });
       showToast(`${itemNos.length} items updated.`, 2000);
       setFetchTrigger(c => c + 1);
       return true;
@@ -791,7 +510,7 @@ const App: React.FC = () => {
   const handleLogout = async () => { try { await supabase.auth.signOut(); setUser(null); sessionStorage.clear(); navigate('/'); } catch (e) { navigate('/'); } };
   
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
       <ScrollToTop scrollContainerRef={scrollRef} />
       <MainContent 
         allMinifigs={allMinifigs} 
@@ -812,7 +531,7 @@ const App: React.FC = () => {
         showAdBanner={showAdBanner}
         scrollRef={scrollRef}
       />
-    </QueryClientProvider>
+    </>
   );
 };
 

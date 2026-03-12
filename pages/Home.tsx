@@ -5,13 +5,14 @@ import MinifigCard from '../components/MinifigCard';
 import CollectionDashboard from '../components/CollectionDashboard';
 import { Minifigure, UserProfile, PopularMinifig, CollectorRank, MarketMover } from '../types';
 import { generateSlug } from '../utils/slug';
+import { useRecentMinifigs, useSearchMinifigs, useHomeStats, useMinifigStats } from '../src/hooks/useMinifigs';
+import { decodeHTMLEntities } from '../utils/text';
 import { MOCK_THEMES } from '../services/mockData';
 import { supabase } from '../services/supabaseClient';
 
 interface HomeProps {
   onToggleOwned: (id: string) => void;
   ownedMinifigs: Minifigure[];
-  allMinifigs: Minifigure[];
   user: UserProfile | null;
   topMinifigs: PopularMinifig[];
   marketMovers: MarketMover[];
@@ -19,12 +20,6 @@ interface HomeProps {
   collectorRanking: CollectorRank[];
   onRetryFetch: () => void;
 }
-
-const decodeHTMLEntities = (text: string) => {
-  const textArea = document.createElement('textarea');
-  textArea.innerHTML = text;
-  return textArea.value;
-};
 
 const KEY_CHARACTER_NAMES = [
   'Luke Skywalker', 'Batman', 'Darth Vader', 'Spider-Man', 
@@ -35,9 +30,13 @@ const KEY_CHARACTER_NAMES = [
 
 import SEO from '../components/SEO';
 
-const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, user, topMinifigs, marketMovers, volumeMovers, collectorRanking, onRetryFetch }) => {
+const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, user, topMinifigs, marketMovers, volumeMovers, collectorRanking, onRetryFetch }) => {
   const navigate = useNavigate();
+  const { data: recentMinifigs = [] } = useRecentMinifigs(15);
+  const { data: homeStats } = useHomeStats();
+  const { data: globalStats } = useMinifigStats();
   const [searchValue, setSearchValue] = useState('');
+  const { data: searchResults = [] } = useSearchMinifigs(searchValue);
   const [showPreview, setShowPreview] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [setMatchedIds, setSetMatchedIds] = useState<Set<string>>(new Set());
@@ -123,101 +122,28 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
   }, []);
 
   const searchPreview = useMemo(() => {
-    const q = searchValue.trim().toLowerCase();
-    if (q.length < 2 && setMatchedIds.size === 0) return [];
-    const terms = q.split(/\s+/).filter(t => t.length > 0);
-    const results = [];
-    const len = allMinifigs.length;
-    for (let i = 0; i < len; i++) {
-        const m = allMinifigs[i];
-        if (results.length >= 6) break; 
-        const mName = (m.name || '').toLowerCase();
-        const mTheme = (m.theme_name || '').toLowerCase();
-        const mSub = (m.sub_category || '').toLowerCase();
-        const itemNo = m.item_no.toLowerCase();
-        
-        const matchesSet = setMatchedIds.has(m.item_no);
-        let matchesText = false;
-        
-        if (terms.length > 0) {
-          matchesText = true;
-          for (let j = 0; j < terms.length; j++) {
-            const term = terms[j];
-            if (!mName.includes(term) && !itemNo.includes(term) && !mTheme.includes(term) && !mSub.includes(term)) {
-              matchesText = false;
-              break;
-            }
-          }
-        }
-
-        if (matchesText || matchesSet) {
-             let score = 100;
-             if (matchesSet) score += 8000;
-             if (itemNo === q) score += 10000;
-             if (mName.includes(q)) score += 2000;
-             results.push({ minifig: m, score, isSetMatch: matchesSet });
-        }
-    }
-    return results.sort((a, b) => b.score - a.score);
-  }, [searchValue, allMinifigs, setMatchedIds]);
+    if (searchValue.trim().length < 2) return [];
+    return searchResults.slice(0, 6).map(m => ({
+      minifig: m,
+      score: m.item_no.toLowerCase() === searchValue.toLowerCase() ? 10000 : 100,
+      isSetMatch: setMatchedIds.has(m.item_no)
+    })).sort((a, b) => b.score - a.score);
+  }, [searchValue, searchResults, setMatchedIds]);
 
   const trendingCharacters = useMemo(() => {
-    if (!allMinifigs.length) return [];
-    const charStats: Record<string, { count: number; bestMatch: Minifigure | null }> = {};
-    const keys = KEY_CHARACTER_NAMES.map(k => ({ original: k, lower: k.toLowerCase() }));
-    for (let i = 0; i < keys.length; i++) {
-      charStats[keys[i].original] = { count: 0, bestMatch: null };
-    }
-    
-    const len = allMinifigs.length;
-    for (let i = 0; i < len; i++) {
-        const m = allMinifigs[i];
-        const nameLower = (m.name || '').toLowerCase();
-        for (let j = 0; j < keys.length; j++) {
-            const k = keys[j];
-            if (nameLower === k.lower || nameLower.startsWith(k.lower + ' ') || nameLower.startsWith(k.lower + '(') || nameLower.startsWith(k.lower + ',')) {
-                const entry = charStats[k.original];
-                entry.count++;
-                if (!entry.bestMatch || m.year_released > entry.bestMatch.year_released) entry.bestMatch = m;
-                break;
-            }
-        }
-    }
-    return KEY_CHARACTER_NAMES.map(name => {
-      const data = charStats[name];
-      return data?.bestMatch ? { name, image_url: data.bestMatch.image_url, count: data.count } : null;
-    }).filter(Boolean).sort((a, b) => b!.count - a!.count);
-  }, [allMinifigs]);
+    return homeStats?.trendingChars || [];
+  }, [homeStats]);
 
   const homeThemes = useMemo(() => {
-    const targetThemes = MOCK_THEMES.slice(0, 6).map(t => t.name.toLowerCase());
-    const stats: Record<string, { count: number, owned: number, latestImg: string, latestYear: number }> = {};
-    for (let i = 0; i < targetThemes.length; i++) {
-      stats[targetThemes[i]] = { count: 0, owned: 0, latestImg: '', latestYear: 0 };
-    }
-    
-    const len = allMinifigs.length;
-    for (let i = 0; i < len; i++) {
-        const m = allMinifigs[i];
-        const mThemeLower = (m.theme_name || '').toLowerCase();
-        const s = stats[mThemeLower];
-        if (s) {
-            s.count++;
-            if (m.owned) s.owned++;
-            if (m.year_released > s.latestYear) {
-                s.latestYear = m.year_released;
-                s.latestImg = m.image_url;
-            }
-        }
-    }
-    return MOCK_THEMES.slice(0, 6).map(theme => {
-        const s = stats[theme.name.toLowerCase()];
-        return { ...theme, count: s.count || theme.minifig_count, owned: s.owned, image_url: s.latestImg || theme.image_url, slug: generateSlug(theme.name) };
-    });
-  }, [allMinifigs]);
+    const themeCounts = homeStats?.themeCounts || {};
+    return MOCK_THEMES.slice(0, 6).map(theme => ({
+      ...theme,
+      count: themeCounts[theme.name] || theme.minifig_count,
+      slug: generateSlug(theme.name)
+    }));
+  }, [homeStats]);
 
-  const recentMinifigs = useMemo(() => [...allMinifigs].sort((a, b) => b.year_released - a.year_released).slice(0, 15), [allMinifigs]);
-  const collectionRate = allMinifigs.length > 0 ? (ownedMinifigs.length / allMinifigs.length) * 100 : 0;
+  const collectionRate = globalStats?.totalCount ? (ownedMinifigs.length / globalStats.totalCount) * 100 : 0;
   const level = useMemo(() => Math.floor(ownedMinifigs.length / 100), [ownedMinifigs]);
   
   const getRankColor = (rank: number) => {
@@ -427,7 +353,7 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
                         <img src={theme.image_url} className="w-full h-full object-contain group-hover:scale-110 transition-transform" alt={theme.name} onError={(e) => (e.target as HTMLImageElement).src = 'https://www.bricklink.com/img/no_image.png'} />
                     </div>
                     <h3 className="text-[9px] font-black text-slate-900 uppercase truncate leading-tight group-hover:text-indigo-600 px-1">{theme.name}</h3>
-                    <p className="text-[7px] font-bold text-slate-400 mt-1">{theme.owned || 0} / {theme.count} own</p>
+                    <p className="text-[7px] font-bold text-slate-400 mt-1">{theme.owned_count || 0} / {theme.count} own</p>
                   </Link>
                 ))}
               </div>

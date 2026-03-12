@@ -3,10 +3,9 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Minifigure, UserProfile } from '../types';
 import SEO from '../components/SEO';
+import { useOwnedMinifigs, useMinifigStats } from '../src/hooks/useMinifigs';
 
 interface StatsProps {
-  ownedMinifigs: Minifigure[];
-  allMinifigs: Minifigure[];
   user: UserProfile | null;
 }
 
@@ -14,10 +13,13 @@ const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
 };
 
-const Stats: React.FC<StatsProps> = ({ ownedMinifigs, allMinifigs, user }) => {
+const Stats: React.FC<StatsProps> = ({ user }) => {
   const navigate = useNavigate();
+  const { data: ownedMinifigs = [] } = useOwnedMinifigs(user?.id);
+  const { data: globalStats } = useMinifigStats();
+
   const stats = useMemo(() => {
-    const totalFigs = allMinifigs.length;
+    const totalFigs = globalStats?.totalCount || 0;
     const ownedTotal = ownedMinifigs.length;
     const completion = totalFigs > 0 ? (ownedTotal / totalFigs) * 100 : 0;
     
@@ -45,7 +47,7 @@ const Stats: React.FC<StatsProps> = ({ ownedMinifigs, allMinifigs, user }) => {
       .sort((a, b) => a[0] - b[0]);
       
     return { totalFigs, ownedTotal, completion, topThemes, recentYears, totalAvgValue, totalMinValue };
-  }, [ownedMinifigs, allMinifigs]);
+  }, [ownedMinifigs, globalStats]);
 
   const maxYearCount = useMemo(() => {
     if (stats.recentYears.length === 0) return 1;
