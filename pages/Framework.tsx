@@ -144,8 +144,9 @@ const Framework: React.FC<FrameworkProps> = ({ allMinifigs, onToggleOwned }) => 
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {allMinifigs
+            {Array.from(new Map(allMinifigs
               .filter(m => m.theme_slug === 'star-wars' && ['sw0001', 'sw0188', 'sw0636', 'sw1135', 'sw0585', 'sw1000'].includes(m.item_no))
+              .map(m => [m.item_no, m])).values())
               .map((m) => (
                 <MinifigCard 
                   key={m.item_no} 

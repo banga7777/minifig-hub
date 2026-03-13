@@ -1,45 +1,97 @@
 
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Minifigure, UserProfile, StatsProps } from '../types';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../services/supabaseClient';
+import { UserProfile } from '../types';
 import SEO from '../components/SEO';
+
+interface StatsProps {
+  user: UserProfile | null;
+}
 
 const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
 };
 
-const Stats: React.FC<StatsProps> = ({ ownedMinifigs, allMinifigs, user }) => {
+const Stats: React.FC<StatsProps> = ({ user }) => {
   const navigate = useNavigate();
-  const stats = useMemo(() => {
-    const totalFigs = allMinifigs.length;
-    const ownedTotal = ownedMinifigs.length;
-    const completion = totalFigs > 0 ? (ownedTotal / totalFigs) * 100 : 0;
-    
-    // 가치 합계 계산
-    const totalAvgValue = ownedMinifigs.reduce((sum, m) => sum + (m.last_stock_avg_price || 0), 0);
-    const totalMinValue = ownedMinifigs.reduce((sum, m) => sum + (m.last_stock_min_price || 0), 0);
 
-    // 테마별 보유 수량
-    const themeCounts = new Map<string, number>();
-    ownedMinifigs.forEach(m => {
-      themeCounts.set(m.theme_name, (themeCounts.get(m.theme_name) || 0) + 1);
-    });
-    const topThemes = Array.from(themeCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
+  const { data: statsData, isLoading } = useQuery({
+    queryKey: ['statsData', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
 
-    // 연도별 보유 수량 (타임라인)
-    const yearCounts = new Map<number, number>();
-    ownedMinifigs.forEach(m => {
-      const year = m.year_released;
-      if (year > 0) yearCounts.set(year, (yearCounts.get(year) || 0) + 1);
-    });
-    
-    const recentYears = Array.from(yearCounts.entries())
-      .sort((a, b) => a[0] - b[0]);
+      console.log('[DEBUG] Stats query started for user:', user.id);
+
+      // 1. Fetch owned minifig IDs
+      const { data: ownedData, error: ownedError } = await supabase
+        .from('user_owned_minifigs')
+        .select('minifig_id')
+        .eq('user_id', user.id);
       
-    return { totalFigs, ownedTotal, completion, topThemes, recentYears, totalAvgValue, totalMinValue };
-  }, [ownedMinifigs, allMinifigs]);
+      console.log('[DEBUG] ownedData:', ownedData);
+      if (ownedError) {
+        console.error('[DEBUG] ownedError:', ownedError);
+        throw ownedError;
+      }
+
+      const minifigIds = ownedData.map(item => item.minifig_id);
+      
+      // 2. Fetch minifigures details
+      const { data: ownedMinifigs, error: minifigsError } = await supabase
+        .from('minifigures')
+        .select('*')
+        .in('item_no', minifigIds);
+
+      console.log('[DEBUG] ownedMinifigs:', ownedMinifigs);
+      if (minifigsError) {
+        console.error('[DEBUG] minifigsError:', minifigsError);
+        throw minifigsError;
+      }
+      
+      console.log('[DEBUG] ownedMinifigs count:', ownedMinifigs?.length);
+
+      // 2. Fetch total count
+      const { count: totalFigs, error: totalError } = await supabase
+        .from('minifigures')
+        .select('*', { count: 'exact', head: true });
+      
+      console.log('[DEBUG] totalFigs:', totalFigs);
+      if (totalError) {
+        console.error('[DEBUG] totalError:', totalError);
+        throw totalError;
+      }
+
+      // Calculate stats
+      const ownedTotal = ownedMinifigs?.length || 0;
+      const completion = (totalFigs || 0) > 0 ? (ownedTotal / (totalFigs || 0)) * 100 : 0;
+      
+      const totalAvgValue = ownedMinifigs?.reduce((sum: number, m: any) => sum + (m.last_stock_avg_price || 0), 0) || 0;
+      const totalMinValue = ownedMinifigs?.reduce((sum: number, m: any) => sum + (m.last_stock_min_price || 0), 0) || 0;
+
+      const themeCounts = new Map<string, number>();
+      ownedMinifigs?.forEach((m: any) => {
+        themeCounts.set(m.main_category, (themeCounts.get(m.main_category) || 0) + 1);
+      });
+      const topThemes = Array.from(themeCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      const yearCounts = new Map<number, number>();
+      ownedMinifigs?.forEach((m: any) => {
+        const year = m.year_released;
+        if (year > 0) yearCounts.set(year, (yearCounts.get(year) || 0) + 1);
+      });
+      const recentYears = Array.from(yearCounts.entries())
+        .sort((a, b) => a[0] - b[0]);
+
+      return { totalFigs: totalFigs || 0, ownedTotal, completion, topThemes, recentYears, totalAvgValue, totalMinValue };
+    },
+    enabled: !!user,
+  });
+
+  const stats = statsData || { totalFigs: 0, ownedTotal: 0, completion: 0, topThemes: [], recentYears: [], totalAvgValue: 0, totalMinValue: 0 };
 
   const maxYearCount = useMemo(() => {
     if (stats.recentYears.length === 0) return 1;

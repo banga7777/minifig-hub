@@ -249,7 +249,7 @@ const MainContent: React.FC<MainContentProps> = ({
             <Route path="/" element={<PageWrapper><Home onToggleOwned={onToggleOwned} ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} topMinifigs={topMinifigs} marketMovers={marketMovers} volumeMovers={volumeMovers} collectorRanking={collectorRanking} onRetryFetch={onRetryFetch} /></PageWrapper>} />
             <Route path="/auth" element={<PageWrapper>{user ? <Navigate to="/collection" /> : <Auth onShowLegalModal={(isOpen: boolean) => updateModalState('authLegal', isOpen)} />}</PageWrapper>} />
             <Route path="/collection/*" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Collection onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} user={user} onShowSettings={(isOpen: boolean) => updateModalState('collectionSettings', isOpen)} onShowDeleteModal={(isOpen: boolean) => updateModalState('collectionDelete', isOpen)} /></ProtectedRoute></PageWrapper>} />
-            <Route path="/stats" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Stats ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} /></ProtectedRoute></PageWrapper>} />
+            <Route path="/stats" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Stats user={user} /></ProtectedRoute></PageWrapper>} />
             <Route path="/themes" element={<PageWrapper><ThemeList allMinifigs={allMinifigs} user={user} /></PageWrapper>} />
             <Route path="/minifigs/:id/*" element={<PageWrapper><MinifigDetail onToggleOwned={onToggleOwned} allMinifigs={allMinifigs} user={user} dataLoading={dataLoading} /></PageWrapper>} />
             <Route path="/themes/:themeName/*" element={<PageWrapper><ThemeDetail onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} allMinifigs={allMinifigs} user={user} onShowSubCatModal={(isOpen: boolean) => updateModalState('themeDetailSubCat', isOpen)} dataLoading={dataLoading} /></PageWrapper>} />
@@ -802,6 +802,10 @@ const App: React.FC = () => {
     try {
       if (!original) await supabase.from('user_owned_minifigs').upsert({ minifig_id: itemNo, user_id: user.id });
       else await supabase.from('user_owned_minifigs').delete().eq('minifig_id', itemNo).eq('user_id', user.id);
+      queryClient.invalidateQueries({ queryKey: ['themeMinifigs'] });
+      queryClient.invalidateQueries({ queryKey: ['ownedMinifigs'] });
+      queryClient.invalidateQueries({ queryKey: ['minifigDetail'] });
+      queryClient.invalidateQueries({ queryKey: ['searchMinifigs'] });
       setFetchTrigger(c => c + 1);
     } catch (err) { setAllMinifigs(prev => prev.map(m => m.item_no === itemNo ? { ...m, owned: original } : m)); }
   };
@@ -816,6 +820,10 @@ const App: React.FC = () => {
       }
       const ids = new Set(itemNos);
       setAllMinifigs(prev => prev.map(m => ids.has(m.item_no) ? { ...m, owned: shouldOwn } : m));
+      queryClient.invalidateQueries({ queryKey: ['themeMinifigs'] });
+      queryClient.invalidateQueries({ queryKey: ['ownedMinifigs'] });
+      queryClient.invalidateQueries({ queryKey: ['minifigDetail'] });
+      queryClient.invalidateQueries({ queryKey: ['searchMinifigs'] });
       showToast(`${itemNos.length} items updated.`, 2000);
       setFetchTrigger(c => c + 1);
       return true;

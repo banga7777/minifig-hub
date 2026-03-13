@@ -86,7 +86,7 @@ const MinifigCard: React.FC<MinifigCardProps> = ({
               e.stopPropagation();
               onToggleOwned(minifig.item_no);
             }}
-            className="w-10 h-10 flex items-center justify-center transition-all duration-200 active:scale-75"
+            className="w-10 h-10 flex items-center justify-center transition-all duration-200 active:scale-75 focus:outline-none"
             aria-label="Toggle owned status"
           >
             <i className={`${
