@@ -5,7 +5,7 @@ import MinifigCard from '../components/MinifigCard';
 import { Minifigure, UserProfile } from '../types';
 import SEO from '../components/SEO';
 import { generateSlug } from '../utils/slug';
-import { useThemeMinifigs } from '../src/hooks/useMinifigs';
+import { useThemeMinifigs, useThemes } from '../src/hooks/useMinifigs';
 
 interface ThemeDetailProps {
   onToggleOwned: (id: string) => void;
@@ -24,7 +24,9 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
   const { themeName } = useParams<{ themeName: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: themeMinifigs = [], isLoading: themeLoading } = useThemeMinifigs(themeName || '', user?.id);
+  const { data: themes = [] } = useThemes();
+  const theme = useMemo(() => themes.find(t => t.slug === themeName), [themes, themeName]);
+  const { data: themeMinifigs = [], isLoading: themeLoading } = useThemeMinifigs(theme?.name || '', user?.id);
   
   // Restore scroll position with retry mechanism
   React.useLayoutEffect(() => {
@@ -157,7 +159,7 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
     result.sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'name') {
-        comparison = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        comparison = a.decoded_name.localeCompare(b.decoded_name, undefined, { sensitivity: 'base' });
       } else if (sortBy === 'id') {
         comparison = a.item_no.localeCompare(b.item_no);
       } else if (sortBy === 'newest') {

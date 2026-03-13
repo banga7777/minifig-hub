@@ -324,21 +324,24 @@ export const useThemes = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('minifigures')
-        .select('main_category');
+        .select('main_category, image_url, item_no');
       
       if (error) throw error;
 
-      const counts = (data || []).reduce((acc: any, curr: any) => {
+      const themeData = (data || []).reduce((acc: any, curr: any) => {
         const theme = curr.main_category || 'Other';
-        acc[theme] = (acc[theme] || 0) + 1;
+        if (!acc[theme]) {
+          acc[theme] = { count: 0, image_url: curr.image_url };
+        }
+        acc[theme].count++;
         return acc;
       }, {});
 
-      return Object.entries(counts).map(([name, count]) => ({
+      return Object.entries(themeData).map(([name, data]: [string, any]) => ({
         name,
-        minifig_count: count as number,
+        minifig_count: data.count as number,
         slug: generateSlug(name),
-        image_url: `https://img.bricklink.com/ItemImage/MN/0/sw0001.png` // Placeholder or fetch latest
+        image_url: data.image_url || `https://img.bricklink.com/ItemImage/MN/0/sw0001.png`
       })).sort((a, b) => b.minifig_count - a.minifig_count);
     },
     staleTime: 1000 * 60 * 60,

@@ -248,7 +248,7 @@ const MainContent: React.FC<MainContentProps> = ({
           <Routes>
             <Route path="/" element={<PageWrapper><Home onToggleOwned={onToggleOwned} ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} topMinifigs={topMinifigs} marketMovers={marketMovers} volumeMovers={volumeMovers} collectorRanking={collectorRanking} onRetryFetch={onRetryFetch} /></PageWrapper>} />
             <Route path="/auth" element={<PageWrapper>{user ? <Navigate to="/collection" /> : <Auth onShowLegalModal={(isOpen: boolean) => updateModalState('authLegal', isOpen)} />}</PageWrapper>} />
-            <Route path="/collection/*" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Collection allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} user={user} onShowSettings={(isOpen: boolean) => updateModalState('collectionSettings', isOpen)} onShowDeleteModal={(isOpen: boolean) => updateModalState('collectionDelete', isOpen)} dataLoading={dataLoading} /></ProtectedRoute></PageWrapper>} />
+            <Route path="/collection/*" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Collection onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} user={user} onShowSettings={(isOpen: boolean) => updateModalState('collectionSettings', isOpen)} onShowDeleteModal={(isOpen: boolean) => updateModalState('collectionDelete', isOpen)} /></ProtectedRoute></PageWrapper>} />
             <Route path="/stats" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Stats ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} /></ProtectedRoute></PageWrapper>} />
             <Route path="/themes" element={<PageWrapper><ThemeList allMinifigs={allMinifigs} user={user} /></PageWrapper>} />
             <Route path="/minifigs/:id/*" element={<PageWrapper><MinifigDetail onToggleOwned={onToggleOwned} allMinifigs={allMinifigs} user={user} dataLoading={dataLoading} /></PageWrapper>} />
@@ -627,14 +627,88 @@ const App: React.FC = () => {
       }
       setHasError(false);
       try {
-        // Fetch minifigures in chunks to avoid payload limits
-        let allRawMinifigs: any[] = [];
+        // 1. Fetch market movers first (small query)
+        let changePercentMap = new Map<string, number>();
+        try {
+          const { data: mmData, error: mmError } = await supabase
+            .from('market_movers_view')
+            .select('item_no, change_percent')
+            .abortSignal(controller.signal);
+          
+          if (!mmError && mmData) {
+            mmData.forEach(m => {
+              if (m.item_no && m.change_percent !== undefined) {
+                changePercentMap.set(m.item_no, parseFloat(m.change_percent));
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('Market movers fetch failed, continuing...', e);
+        }
+
+        // 2. Fetch owned minifigures first for instant collection display
+        let ownedIds = new Set<string>();
+        let initialMinifigs: Minifigure[] = [];
+        
+        if (user) {
+          const { data: ownedData, error: ownedError } = await supabase
+            .from('user_owned_minifigs')
+            .select(`
+              minifig_id,
+              minifigures (
+                item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_stock_min_price, last_stock_avg_price, stock_updated_at
+              )
+            `)
+            .eq('user_id', user.id)
+            .abortSignal(controller.signal);
+
+          if (!ownedError && ownedData) {
+            initialMinifigs = ownedData
+              .filter((item: any) => item.minifigures)
+              .map((item: any) => {
+                const m = item.minifigures;
+                const itemNo = m.item_no || 'unknown';
+                const themeName = m.main_category || 'Other';
+                const name = m.name_en || 'Untitled';
+                ownedIds.add(itemNo);
+                return {
+                  item_no: itemNo,
+                  name: name,
+                  decoded_name: decodeHTMLEntities(name),
+                  theme_name: themeName,
+                  theme_slug: generateSlug(themeName),
+                  sub_category: m.sub_category || '',
+                  image_url: m.image_url || `https://img.bricklink.com/ItemImage/MN/0/${itemNo.toUpperCase()}.png`,
+                  category_id: m.category_id || 0,
+                  year_released: m.year_released || 0,
+                  owned: true,
+                  last_stock_min_price: m.last_stock_min_price,
+                  last_stock_avg_price: m.last_stock_avg_price,
+                  change_percent: changePercentMap.get(itemNo),
+                  stock_updated_at: m.stock_updated_at
+                };
+              });
+            
+            // Update owned status of existing minifigures if allMinifigs is already populated
+            setAllMinifigs(prev => {
+              if (prev.length === 0) return initialMinifigs;
+              return prev.map(m => ({ ...m, owned: ownedIds.has(m.item_no) }));
+            });
+            
+            // 소장 중인 데이터가 로드되면 즉시 로딩 상태 해제 (컬렉션 화면 즉시 표시 가능)
+            setDataLoading(false);
+          }
+        }
+
+        // 3. Fetch all minifigures in chunks and update state progressively
         let page = 0;
-        const pageSize = 1000; // Reduced to 1000 for better stability
+        const pageSize = 1000;
         let hasMore = true;
+        const processedIds = new Set<string>(ownedIds);
 
         while (hasMore) {
           let retries = 3;
+          let chunkData: any[] = [];
           let success = false;
           
           while (retries > 0 && !success) {
@@ -646,102 +720,62 @@ const App: React.FC = () => {
                 .abortSignal(controller.signal);
               
               if (error) throw error;
-              
-              if (data && data.length > 0) {
-                allRawMinifigs = [...allRawMinifigs, ...data];
-                if (data.length < pageSize) hasMore = false;
-                else page++;
+              if (data) {
+                chunkData = data;
+                success = true;
               } else {
                 hasMore = false;
+                success = true;
               }
-              success = true;
             } catch (e: any) {
-              // Check if it's an abort error, if so, don't retry and rethrow
               if (e.name === 'AbortError' || e.message?.includes('AbortError')) throw e;
-              
-              console.warn(`Fetch failed (page ${page}), retrying... (${retries} left)`, e);
               retries--;
               if (retries === 0) throw e;
-              await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries))); // Exponential backoff: 1s, 2s, 3s
+              await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
             }
           }
-        }
-        
-        // Fetch market movers in chunks
-        let allMarketMovers: any[] = [];
-        let mmPage = 0;
-        const mmPageSize = 1000; // Reduced to 1000
-        let mmHasMore = true;
 
-        while (mmHasMore) {
-          const { data, error } = await supabase
-            .from('market_movers_view')
-            .select('item_no, change_percent')
-            .range(mmPage * mmPageSize, (mmPage + 1) * mmPageSize - 1)
-            .abortSignal(controller.signal);
-          
-          if (error) {
-            console.warn('Error fetching market movers chunk:', error);
-            break; // Continue with partial data
-          }
-          
-          if (data && data.length > 0) {
-            allMarketMovers = [...allMarketMovers, ...data];
-            if (data.length < mmPageSize) mmHasMore = false;
-            else mmPage++;
+          if (chunkData.length > 0) {
+            // 이미 초기 로드(소장 미니피겨)에서 처리된 것은 제외하고 추가
+            const newMinifigs: Minifigure[] = [];
+            chunkData.forEach((m: any) => {
+              const itemNo = m.item_no || 'unknown';
+              if (!processedIds.has(itemNo)) {
+                const themeName = m.main_category || 'Other';
+                const name = m.name_en || 'Untitled';
+                newMinifigs.push({
+                  item_no: itemNo, 
+                  name: name, 
+                  decoded_name: decodeHTMLEntities(name),
+                  theme_name: themeName, 
+                  theme_slug: generateSlug(themeName),
+                  sub_category: m.sub_category || '', 
+                  image_url: m.image_url || `https://img.bricklink.com/ItemImage/MN/0/${itemNo.toUpperCase()}.png`, 
+                  category_id: m.category_id || 0, 
+                  year_released: m.year_released || 0, 
+                  owned: ownedIds.has(itemNo),
+                  last_stock_min_price: m.last_stock_min_price,
+                  last_stock_avg_price: m.last_stock_avg_price,
+                  change_percent: changePercentMap.get(itemNo),
+                  stock_updated_at: m.stock_updated_at
+                });
+                processedIds.add(itemNo);
+              }
+            });
+
+            if (newMinifigs.length > 0) {
+              setAllMinifigs(prev => [...prev, ...newMinifigs]);
+            }
+
+            // 첫 번째 청크 로드 후 로딩 상태 해제 (이미 위에서 해제했을 수도 있음)
+            setDataLoading(false);
+
+            if (chunkData.length < pageSize) hasMore = false;
+            else page++;
           } else {
-            mmHasMore = false;
+            hasMore = false;
           }
         }
-        
-        const changePercentMap = new Map<string, number>();
-        if (allMarketMovers.length > 0) {
-          allMarketMovers.forEach(m => {
-            if (m.item_no && m.change_percent !== undefined) {
-              changePercentMap.set(m.item_no, parseFloat(m.change_percent));
-            }
-          });
-        }
-
-        let ownedIds = new Set<string>();
-        if (user) {
-          const { data: owned, error: ownedError } = await supabase
-            .from('user_owned_minifigs')
-            .select('minifig_id')
-            .eq('user_id', user.id)
-            .abortSignal(controller.signal);
-          if (!ownedError && owned) owned.forEach(o => ownedIds.add(o.minifig_id));
-        }
-
-        const enriched: Minifigure[] = allRawMinifigs.map((m: any) => {
-          const itemNo = m.item_no || 'unknown';
-          const themeName = m.main_category || 'Other';
-          const name = m.name_en || 'Untitled';
-          return {
-            item_no: itemNo, 
-            name: name, 
-            decoded_name: decodeHTMLEntities(name),
-            theme_name: themeName, 
-            theme_slug: generateSlug(themeName),
-            sub_category: m.sub_category || '', 
-            image_url: m.image_url || `https://img.bricklink.com/ItemImage/MN/0/${itemNo.toUpperCase()}.png`, 
-            category_id: m.category_id || 0, 
-            year_released: m.year_released || 0, 
-            owned: ownedIds.has(itemNo),
-            last_stock_min_price: m.last_stock_min_price,
-            last_stock_avg_price: m.last_stock_avg_price,
-            change_percent: changePercentMap.get(itemNo),
-            stock_updated_at: m.stock_updated_at
-          };
-        });
-        
-        setAllMinifigs(enriched);
-        setTopMinifigs(prev => prev.map(m => ({ 
-          ...m, 
-          owned: ownedIds.has(m.item_no),
-          change_percent: changePercentMap.get(m.item_no)
-        })));
-
       } catch (err: any) {
         const isAbortError = err.name === 'AbortError' || err.message?.includes('AbortError') || err.code === '20' || err.message?.includes('signal is aborted');
         if (!isAbortError) {

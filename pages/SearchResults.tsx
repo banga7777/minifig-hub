@@ -142,7 +142,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ onToggleOwned, onBulkTogg
     result = [...result].sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'name') {
-        comparison = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        comparison = a.decoded_name.localeCompare(b.decoded_name, undefined, { sensitivity: 'base' });
       } else if (sortBy === 'id') {
         comparison = a.item_no.localeCompare(b.item_no);
       } else if (sortBy === 'year') {

@@ -1,22 +1,20 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import MinifigCard from '../components/MinifigCard';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../services/supabaseClient';
 import { Minifigure, UserProfile } from '../types';
 import { generateSlug } from '../utils/slug';
 import { decodeHTMLEntities } from '../utils/text';
-import { supabase } from '../services/supabaseClient';
+import MinifigCard from '../components/MinifigCard';
 import SEO from '../components/SEO';
-import { useOwnedMinifigs, useMinifigStats } from '../src/hooks/useMinifigs';
+import { useNavigate, Link } from 'react-router-dom';
 
 interface CollectionProps {
-  allMinifigs: Minifigure[];
   onToggleOwned: (id: string) => void;
   onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
   user: UserProfile | null;
   onShowSettings: (isOpen: boolean) => void; 
   onShowDeleteModal: (isOpen: boolean) => void;
-  dataLoading: boolean;
 }
 
 type SortOption = 'id' | 'newest' | 'name' | 'theme' | 'value';
@@ -28,10 +26,48 @@ const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
 };
 
-const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal, dataLoading }) => {
+const Collection: React.FC<CollectionProps> = ({ onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal }) => {
   const navigate = useNavigate();
-  const { data: ownedMinifigs = [], isLoading: collectionLoading } = useOwnedMinifigs(user?.id);
-  const { data: stats } = useMinifigStats();
+  
+  const { data: ownedMinifigs = [], isLoading: dataLoading, refetch } = useQuery({
+    queryKey: ['ownedMinifigs', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      // 1. Fetch owned minifig IDs
+      const { data: ownedData, error: ownedError } = await supabase
+        .from('user_owned_minifigs')
+        .select('minifig_id')
+        .eq('user_id', user.id);
+
+      if (ownedError) throw ownedError;
+      
+      const minifigIds = ownedData.map(item => item.minifig_id);
+      if (minifigIds.length === 0) return [];
+
+      // 2. Fetch minifigures with details
+      const { data: minifigs, error: minifigsError } = await supabase
+        .from('minifigures')
+        .select('*')
+        .in('item_no', minifigIds);
+        
+      if (minifigsError) throw minifigsError;
+      
+      return minifigs.map(m => ({ ...m, owned: true, decoded_name: decodeHTMLEntities(m.name_en || 'Untitled') }));
+    },
+    enabled: !!user,
+  });
+  
+  const { data: stats } = useQuery({
+    queryKey: ['minifigStats'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('minifigures')
+        .select('*', { count: 'exact', head: true });
+      if (error) throw error;
+      return { totalCount: count || 0 };
+    }
+  });
   const totalCount = stats?.totalCount || 0;
 
   const [filter, setFilter] = useState('');
@@ -108,10 +144,10 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
     setSelectedItems(new Set());
   }, [filter, sortBy, groupingMode]);
 
-  const totalAvgValue = useMemo(() => ownedMinifigs.reduce((sum, m) => sum + (m.last_stock_avg_price || 0), 0), [ownedMinifigs]);
-  const totalMinValue = useMemo(() => ownedMinifigs.reduce((sum, m) => sum + (m.last_stock_min_price || 0), 0), [ownedMinifigs]);
+  const totalAvgValue = useMemo(() => ownedMinifigs.reduce((sum: number, m: Minifigure) => sum + (m.last_stock_avg_price || 0), 0), [ownedMinifigs]);
+  const totalMinValue = useMemo(() => ownedMinifigs.reduce((sum: number, m: Minifigure) => sum + (m.last_stock_min_price || 0), 0), [ownedMinifigs]);
   
-  const completionRate = totalCount > 0 ? (ownedMinifigs.length / totalCount) * 100 : 0;
+  const completionRate = (totalCount > 0 && ownedMinifigs.length > 0) ? (ownedMinifigs.length / totalCount) * 100 : 0;
   const level = Math.floor(ownedMinifigs.length / 100);
 
   const displayedList = useMemo(() => {
@@ -126,10 +162,10 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
     }
     result.sort((a, b) => {
       if (sortBy === 'id') return b.item_no.localeCompare(a.item_no);
-      if (sortBy === 'name') return decodeHTMLEntities(a.name).toLowerCase().localeCompare(decodeHTMLEntities(b.name).toLowerCase());
+      if (sortBy === 'name') return a.decoded_name.toLowerCase().localeCompare(b.decoded_name.toLowerCase());
       if (sortBy === 'theme') {
         const themeComp = a.theme_name.localeCompare(b.theme_name);
-        return themeComp !== 0 ? themeComp : decodeHTMLEntities(a.name).toLowerCase().localeCompare(decodeHTMLEntities(b.name).toLowerCase());
+        return themeComp !== 0 ? themeComp : a.decoded_name.toLowerCase().localeCompare(b.decoded_name.toLowerCase());
       }
       if (sortBy === 'value') return (b.last_stock_min_price || 0) - (a.last_stock_min_price || 0);
       return sortBy === 'newest' ? (b.year_released - a.year_released) || b.item_no.localeCompare(a.item_no) : 0;
@@ -234,10 +270,13 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
 
   const gridClass = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5' }[gridCols];
   
-  if (collectionLoading) {
+  if (dataLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Loading Collection...</p>
+        </div>
       </div>
     );
   }
