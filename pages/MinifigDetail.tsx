@@ -19,6 +19,8 @@ interface AppearanceSummary {
 interface MinifigDetailProps {
   onToggleOwned: (id: string) => void;
   user: UserProfile | null;
+  allMinifigs: Minifigure[];
+  dataLoading: boolean;
 }
 
 const decodeHTMLEntities = (text: string) => {
@@ -39,7 +41,7 @@ const stripSetSuffix = (setNo: string) => {
 
 import SEO from '../components/SEO';
 
-const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, user }) => {
+const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, user, allMinifigs, dataLoading }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [appearanceSummary, setAppearanceSummary] = useState<AppearanceSummary | null>(null);

@@ -10,11 +10,13 @@ import SEO from '../components/SEO';
 import { useOwnedMinifigs, useMinifigStats } from '../src/hooks/useMinifigs';
 
 interface CollectionProps {
+  allMinifigs: Minifigure[];
   onToggleOwned: (id: string) => void;
   onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
   user: UserProfile | null;
   onShowSettings: (isOpen: boolean) => void; 
   onShowDeleteModal: (isOpen: boolean) => void;
+  dataLoading: boolean;
 }
 
 type SortOption = 'id' | 'newest' | 'name' | 'theme' | 'value';
@@ -26,7 +28,7 @@ const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
 };
 
-const Collection: React.FC<CollectionProps> = ({ onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal }) => {
+const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal, dataLoading }) => {
   const navigate = useNavigate();
   const { data: ownedMinifigs = [], isLoading: collectionLoading } = useOwnedMinifigs(user?.id);
   const { data: stats } = useMinifigStats();

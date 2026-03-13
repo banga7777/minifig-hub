@@ -1,19 +1,20 @@
 
 import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserProfile, Theme } from '../types';
+import { UserProfile, Theme, Minifigure } from '../types';
 import SEO from '../components/SEO';
 import { generateSlug } from '../utils/slug';
 import { useThemes, useThemeProgress } from '../src/hooks/useMinifigs';
 
 interface ThemeListProps {
   user: UserProfile | null;
+  allMinifigs: Minifigure[];
 }
 
 type SortOption = 'MOST_FIGS' | 'PROGRESS' | 'NAME';
 type StatusFilter = 'ALL' | 'COMPLETED' | 'STARTED' | 'NOT_STARTED';
 
-const ThemeList: React.FC<ThemeListProps> = ({ user }) => {
+const ThemeList: React.FC<ThemeListProps> = ({ user, allMinifigs }) => {
   const navigate = useNavigate();
   const { data: themes = [], isLoading: themesLoading } = useThemes();
   const { data: progress = {} } = useThemeProgress(user?.id);

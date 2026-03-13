@@ -11,14 +11,16 @@ interface ThemeDetailProps {
   onToggleOwned: (id: string) => void;
   onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
   user: UserProfile | null;
-  onShowSubCatModal: (isOpen: boolean) => void; 
+  onShowSubCatModal: (isOpen: boolean) => void;
+  allMinifigs: Minifigure[];
+  dataLoading: boolean;
 }
 
 type SortOption = 'newest' | 'name' | 'id' | 'value';
 type SortOrder = 'asc' | 'desc';
 type OwnedFilter = 'all' | 'owned' | 'missing';
 
-const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOwned, user, onShowSubCatModal }) => {
+const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOwned, user, onShowSubCatModal, allMinifigs, dataLoading }) => {
   const { themeName } = useParams<{ themeName: string }>();
   const navigate = useNavigate();
   const location = useLocation();

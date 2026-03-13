@@ -12,6 +12,8 @@ interface SearchResultsProps {
   onToggleOwned: (id: string) => void;
   onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
   user: UserProfile | null;
+  allMinifigs: Minifigure[];
+  dataLoading: boolean;
 }
 
 type SortOption = 'relevance' | 'year' | 'name' | 'id' | 'value';
@@ -24,7 +26,7 @@ const decodeHTMLEntities = (text: string) => {
   return textArea.value;
 };
 
-const SearchResults: React.FC<SearchResultsProps> = ({ onToggleOwned, onBulkToggleOwned, user }) => {
+const SearchResults: React.FC<SearchResultsProps> = ({ onToggleOwned, onBulkToggleOwned, user, allMinifigs, dataLoading }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryFromUrl = searchParams.get('q') || '';
