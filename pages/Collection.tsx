@@ -222,9 +222,9 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
       if (rpcError) console.warn("RPC deletion fail");
       await supabase.auth.signOut();
       sessionStorage.clear();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Critical Deletion error:", err);
-      alert("Error: " + (err.message || "Failed to delete account."));
+      alert("Error: " + (err instanceof Error ? err.message : "Failed to delete account."));
       setIsDeleting(false);
       setShowDeleteModal(false);
     }

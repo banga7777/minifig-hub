@@ -131,7 +131,7 @@ const ArchiveView = ({
   subtitle: string,
   desc: string,
   themeColor: string,
-  seo: any
+  seo: { title: string; description: string; keywords?: string }
 }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);

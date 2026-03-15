@@ -1,5 +1,5 @@
 export default {
-  async fetch(request: Request, env: any) {
+  async fetch(request: Request, env: { ASSETS: { fetch: (req: Request) => Promise<Response> } }) {
     const url = new URL(request.url);
     
     // 1. Try to fetch the requested asset

@@ -6,7 +6,6 @@ import { generateSlug } from '../utils/slug';
 import MinifigCard from '../components/MinifigCard';
 import { supabase } from '../services/supabaseClient';
 import { AdMobService } from '../services/adMobService';
-import { useMinifigDetail, useThemeMinifigs } from '../src/hooks/useMinifigs';
 
 const AMAZON_TAG = 'minifighub-20'; 
 const EBAY_CAMPID = '5339000000';  
@@ -17,9 +16,9 @@ interface AppearanceSummary {
 }
 
 interface MinifigDetailProps {
-  onToggleOwned: (id: string, currentOwned?: boolean) => void;
-  user: UserProfile | null;
+  onToggleOwned: (id: string) => void;
   allMinifigs: Minifigure[];
+  user: UserProfile | null;
   dataLoading: boolean;
 }
 
@@ -41,28 +40,22 @@ const stripSetSuffix = (setNo: string) => {
 
 import SEO from '../components/SEO';
 
-const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, user, allMinifigs, dataLoading }) => {
+const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifigs, user, dataLoading }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [appearanceSummary, setAppearanceSummary] = useState<AppearanceSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   
-  const { data: minifigData, isLoading: detailLoading } = useMinifigDetail(id || '', user?.id);
-  const { data: themeMinifigsData = [] } = useThemeMinifigs(minifigData?.theme_name || '', user?.id);
-
-  // Merge optimistic owned status from allMinifigs
   const minifig = useMemo(() => {
-    if (!minifigData) return null;
-    const globalMatch = allMinifigs.find(am => am.item_no === minifigData.item_no);
-    return globalMatch ? { ...minifigData, owned: globalMatch.owned || minifigData.owned } : minifigData;
-  }, [minifigData, allMinifigs]);
+    if (!id) return undefined;
+    // Try exact match first
+    let found = allMinifigs.find(m => m.item_no === id);
+    if (found) return found;
 
-  const themeMinifigs = useMemo(() => {
-    return themeMinifigsData.map(m => {
-      const globalMatch = allMinifigs.find(am => am.item_no === m.item_no);
-      return globalMatch ? { ...m, owned: globalMatch.owned || m.owned } : m;
-    });
-  }, [themeMinifigsData, allMinifigs]);
+    // If not found, it might be a slug-based ID (item_no-slug)
+    // We look for a minifig whose item_no matches the beginning of the ID followed by a hyphen
+    return allMinifigs.find(m => id.startsWith(`${m.item_no}-`));
+  }, [allMinifigs, id]);
 
   useEffect(() => {
     if (!minifig) return;
@@ -84,8 +77,8 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, user, allM
           .single();
         
         if (!error && data) setAppearanceSummary(data);
-      } catch (err: any) {
-        if (err.name !== 'AbortError') console.error("Error fetching appearance summary:", err);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== 'AbortError') console.error("Error fetching appearance summary:", err);
       } finally {
         setLoadingSummary(false);
       }
@@ -116,8 +109,10 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, user, allM
     const targetTheme = minifig.theme_name;
     const targetSub = minifig.sub_category;
     const currentId = minifig.item_no;
-    const candidates = themeMinifigs.filter(m => m.item_no !== currentId);
-    
+    const candidates: Minifigure[] = [];
+    for (let i = 0; i < allMinifigs.length; i++) {
+        if (allMinifigs[i].theme_name === targetTheme && allMinifigs[i].item_no !== currentId) candidates.push(allMinifigs[i]);
+    }
     const primaryName = minifig.name.split(/[, (]/)[0].toLowerCase();
     const scoredCandidates = candidates.map(m => {
       let score = 50;
@@ -127,9 +122,9 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, user, allM
     });
     scoredCandidates.sort((a, b) => b.score !== a.score ? b.score - a.score : b.minifig.year_released - a.minifig.year_released);
     return scoredCandidates.slice(0, 15).map(item => item.minifig);
-  }, [themeMinifigs, minifig]);
+  }, [allMinifigs, minifig]);
 
-  if (detailLoading) {
+  if (dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -155,7 +150,7 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, user, allM
         title={`${decodedName} (${minifig.item_no})`}
         description={`Check out ${decodedName} (${minifig.item_no}) from ${minifig.theme_name}. Current market value: ${formatCurrency(minifig.last_stock_avg_price)}.`}
         image={minifig.image_url}
-        canonical={`https://minifig-hub.com/minifigs/${minifig.item_no}-${generateSlug(minifig.name)}`}
+        canonical={`https://minifighub.com/minifigs/${minifig.item_no}`}
         keywords={`LEGO, Minifigure, ${minifig.item_no}, ${decodedName}, ${minifig.theme_name}, Price, Value`}
       />
       <script type="application/ld+json">
@@ -186,7 +181,7 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, user, allM
             <Link to={`/themes/${generateSlug(minifig.theme_name)}`} className="inline-block text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-3 bg-indigo-50 px-3 py-1 rounded-full shadow-sm">{minifig.theme_name}</Link>
             <h1 className="text-xl md:text-2xl font-black text-slate-900 leading-tight italic uppercase tracking-tighter mb-3 px-4">{decodedName}</h1>
             <div className="flex items-center justify-center gap-4 text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-8"><span className="bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{minifig.item_no}</span><span className="w-1.5 h-1.5 bg-slate-200 rounded-full"></span><span>Released {minifig.year_released}</span></div>
-            <button onClick={() => onToggleOwned(minifig.item_no, minifig.owned)} className={`w-full max-w-[320px] h-14 rounded-2xl flex items-center justify-center gap-3 font-black uppercase text-[11px] tracking-[0.2em] transition-all active:scale-95 shadow-xl mx-auto mb-2 focus:outline-none ${minifig.owned ? 'bg-rose-500 text-white shadow-rose-500/20' : 'bg-slate-900 text-white shadow-slate-900/20'}`}><i className={`${minifig.owned ? 'fas' : 'far'} fa-heart text-sm`}></i>{minifig.owned ? 'I OWN THIS FIGURE' : 'ADD TO COLLECTION'}</button>
+            <button onClick={() => onToggleOwned(minifig.item_no)} className={`w-full max-w-[320px] h-14 rounded-2xl flex items-center justify-center gap-3 font-black uppercase text-[11px] tracking-[0.2em] transition-all active:scale-95 shadow-xl mx-auto mb-2 ${minifig.owned ? 'bg-rose-500 text-white shadow-rose-500/20' : 'bg-slate-900 text-white shadow-slate-900/20'}`}><i className={`${minifig.owned ? 'fas' : 'far'} fa-heart text-sm`}></i>{minifig.owned ? 'I OWN THIS FIGURE' : 'ADD TO COLLECTION'}</button>
           </div>
         </div>
 

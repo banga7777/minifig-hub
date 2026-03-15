@@ -54,13 +54,42 @@ if (!toastContainer) {
 }
 
 // Store the root instance on the container element to reuse it
+interface RootContainer extends HTMLElement {
+  _reactRoot?: ReactDOM.Root;
+}
+
+interface RawMinifig {
+  item_no?: string;
+  name_en?: string;
+  main_category?: string;
+  sub_category?: string;
+  image_url?: string;
+  category_id?: number;
+  year_released?: number;
+  last_stock_min_price?: number;
+  last_stock_avg_price?: number;
+  stock_updated_at?: string;
+  owner_count?: string | number;
+  change_percent?: string | number;
+}
+
+interface RawRank {
+  user_id: string;
+  username?: string;
+  avatar_url?: string;
+  total_value?: number;
+  total_quantity?: number;
+  owned_count?: number;
+}
+
 // This avoids the "You are calling ReactDOMClient.createRoot() on a container that has already been passed to createRoot() before" warning
 const getToastRoot = (container: HTMLElement) => {
-  if ((container as any)._reactRoot) {
-    return (container as any)._reactRoot;
+  const rootContainer = container as RootContainer;
+  if (rootContainer._reactRoot) {
+    return rootContainer._reactRoot;
   }
   const root = ReactDOM.createRoot(container);
-  (container as any)._reactRoot = root;
+  rootContainer._reactRoot = root;
   return root;
 };
 
@@ -494,11 +523,11 @@ const App: React.FC = () => {
           return;
         }
 
-        const topList = trendData.map((m: any, idx: number) => {
+        const topList = trendData.map((m: RawMinifig, idx: number) => {
           const name = m.name_en || 'Untitled';
           const themeName = m.main_category || 'Other';
           return {
-            item_no: m.item_no,
+            item_no: m.item_no || 'unknown',
             name: name,
             decoded_name: decodeHTMLEntities(name),
             theme_name: themeName,
@@ -509,15 +538,15 @@ const App: React.FC = () => {
             year_released: m.year_released || 0,
             owned: false,
             rank: idx + 1,
-            owner_count: parseInt(m.owner_count || 0),
+            owner_count: typeof m.owner_count === 'string' ? parseInt(m.owner_count) : (m.owner_count || 0),
             last_stock_min_price: m.last_stock_min_price,
             last_stock_avg_price: m.last_stock_avg_price
           };
         });
 
         setTopMinifigs(topList);
-      } catch (err: any) {
-        if (err.name !== 'AbortError') console.error("Trends View Fetch Error:", err);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== 'AbortError') console.error("Trends View Fetch Error:", err);
       }
     };
     
@@ -527,7 +556,7 @@ const App: React.FC = () => {
         if (rankingError) throw rankingError;
 
         if (rankingData) {
-          const rankedList: CollectorRank[] = rankingData.map((item: any, index: number) => ({
+          const rankedList: CollectorRank[] = rankingData.map((item: RawRank, index: number) => ({
             rank: index + 1,
             user_id: item.user_id,
             username: item.username,
@@ -536,8 +565,8 @@ const App: React.FC = () => {
           }));
           setCollectorRanking(rankedList);
         }
-      } catch (err: any) {
-        if (err.name !== 'AbortError') console.error("Collector ranking fetch error:", err);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== 'AbortError') console.error("Collector ranking fetch error:", err);
         setCollectorRanking([]);
       }
     };
@@ -602,8 +631,8 @@ const App: React.FC = () => {
             total_quantity: parseInt(m.total_quantity || 0)
           })));
         }
-      } catch (err: any) {
-        if (err.name !== 'AbortError') console.error("Market movers fetch error:", err);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== 'AbortError') console.error("Market movers fetch error:", err);
       }
     };
 
@@ -623,7 +652,7 @@ const App: React.FC = () => {
       setHasError(false);
       try {
         // Fetch minifigures in chunks to avoid payload limits
-        let allRawMinifigs: any[] = [];
+        let allRawMinifigs: RawMinifig[] = [];
         let page = 0;
         const pageSize = 1000; // Reduced to 1000 for better stability
         let hasMore = true;
@@ -650,9 +679,9 @@ const App: React.FC = () => {
                 hasMore = false;
               }
               success = true;
-            } catch (e: any) {
+            } catch (e: unknown) {
               // Check if it's an abort error, if so, don't retry and rethrow
-              if (e.name === 'AbortError' || e.message?.includes('AbortError')) throw e;
+              if (e instanceof Error && (e.name === 'AbortError' || e.message?.includes('AbortError'))) throw e;
               
               console.warn(`Fetch failed (page ${page}), retrying... (${retries} left)`, e);
               retries--;
@@ -663,7 +692,7 @@ const App: React.FC = () => {
         }
         
         // Fetch market movers in chunks
-        let allMarketMovers: any[] = [];
+        let allMarketMovers: RawMinifig[] = [];
         let mmPage = 0;
         const mmPageSize = 1000; // Reduced to 1000
         let mmHasMore = true;
@@ -693,7 +722,7 @@ const App: React.FC = () => {
         if (allMarketMovers.length > 0) {
           allMarketMovers.forEach(m => {
             if (m.item_no && m.change_percent !== undefined) {
-              changePercentMap.set(m.item_no, parseFloat(m.change_percent));
+              changePercentMap.set(m.item_no, typeof m.change_percent === 'string' ? parseFloat(m.change_percent) : m.change_percent);
             }
           });
         }
@@ -708,7 +737,7 @@ const App: React.FC = () => {
           if (!ownedError && owned) owned.forEach(o => ownedIds.add(o.minifig_id));
         }
 
-        const enriched: Minifigure[] = allRawMinifigs.map((m: any) => {
+        const enriched: Minifigure[] = allRawMinifigs.map((m: RawMinifig) => {
           const itemNo = m.item_no || 'unknown';
           const themeName = m.main_category || 'Other';
           const name = m.name_en || 'Untitled';
@@ -737,8 +766,8 @@ const App: React.FC = () => {
           change_percent: changePercentMap.get(m.item_no)
         })));
 
-      } catch (err: any) {
-        const isAbortError = err.name === 'AbortError' || err.message?.includes('AbortError') || err.code === '20' || err.message?.includes('signal is aborted');
+      } catch (err: unknown) {
+        const isAbortError = err instanceof Error && (err.name === 'AbortError' || err.message?.includes('AbortError') || ('code' in err && err.code === '20') || err.message?.includes('signal is aborted'));
         if (!isAbortError) {
           setHasError(true);
           console.error("Sync Error:", err);

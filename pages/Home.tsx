@@ -9,7 +9,7 @@ import { MOCK_THEMES } from '../services/mockData';
 import { supabase } from '../services/supabaseClient';
 
 interface HomeProps {
-  onToggleOwned: (id: string, currentOwned?: boolean) => void;
+  onToggleOwned: (id: string) => void;
   ownedMinifigs: Minifigure[];
   allMinifigs: Minifigure[];
   user: UserProfile | null;
@@ -37,16 +37,6 @@ import SEO from '../components/SEO';
 
 const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, user, topMinifigs, marketMovers, volumeMovers, collectorRanking, onRetryFetch }) => {
   const navigate = useNavigate();
-
-  const mergedTopMinifigs = useMemo(() => {
-    const allMap = new Map(allMinifigs.map(m => [m.item_no, m]));
-    return topMinifigs.map(tm => {
-      const am = allMap.get(tm.item_no);
-      if (am) return { ...tm, owned: am.owned };
-      return tm;
-    });
-  }, [topMinifigs, allMinifigs]);
-
   const [searchValue, setSearchValue] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -118,7 +108,7 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
           .limit(20)
           .abortSignal(controller.signal);
         if (data) setSetMatchedIds(new Set(data.map(d => d.item_no)));
-      } catch (err: any) { if (err.name !== 'AbortError') console.error("Set search failed:", err); }
+      } catch (err: unknown) { if (err instanceof Error && err.name !== 'AbortError') console.error("Set search failed:", err); }
       finally { setIsSearchingSets(false); }
     }, 350);
     return () => { clearTimeout(timer); controller.abort(); };
@@ -226,17 +216,7 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
     });
   }, [allMinifigs]);
 
-  const recentMinifigs = useMemo(() => {
-    return [...allMinifigs]
-      .sort((a, b) => {
-        if (b.year_released !== a.year_released) {
-          return b.year_released - a.year_released;
-        }
-        // If years are same, sort by item_no descending (assuming newer ones have higher IDs/alphanumeric)
-        return b.item_no.localeCompare(a.item_no);
-      })
-      .slice(0, 15);
-  }, [allMinifigs]);
+  const recentMinifigs = useMemo(() => [...allMinifigs].sort((a, b) => b.year_released - a.year_released).slice(0, 15), [allMinifigs]);
   const collectionRate = allMinifigs.length > 0 ? (ownedMinifigs.length / allMinifigs.length) * 100 : 0;
   const level = useMemo(() => Math.floor(ownedMinifigs.length / 100), [ownedMinifigs]);
   
@@ -254,7 +234,6 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
       <SEO 
         title="Minifig Hub - LEGO Minifigure Collection Tracker" 
         description="Manage, explore, and grow your LEGO Minifigure collection with real-time market values and visual search."
-        canonical="https://minifig-hub.com/"
       />
       <div className="h-20 flex items-center justify-center -mb-20">
         <div className={`w-9 h-9 rounded-full flex items-center justify-center bg-white shadow-lg transition-all duration-200 ${isRefreshing ? 'animate-spin' : ''}`} style={{ opacity: Math.min(1, pullPosition / (PULL_THRESHOLD / 2)), transform: `scale(${Math.min(1, pullPosition / PULL_THRESHOLD)})` }}>
@@ -276,7 +255,7 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
                 {showPreview && searchPreview.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-2xl rounded-xl shadow-2xl border border-white/20 overflow-hidden z-[110] animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="p-1.5">
-                      {searchPreview.map((result: any) => {
+                      {searchPreview.map((result: { minifig: Minifigure; score: number; isSetMatch: boolean }) => {
                         const fig = result.minifig;
                         if (!fig) return null;
                         return (
@@ -360,25 +339,14 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
                 </div>
                 <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">{isRealData ? 'Live' : 'Featured'}</span>
               </div>
-              {mergedTopMinifigs.length > 0 ? (
+              {topMinifigs.length > 0 ? (
                 <div className="flex gap-3 overflow-x-auto hide-scrollbar px-1">
-                  {mergedTopMinifigs.map((m) => (
+                  {topMinifigs.map((m) => (
                     <div key={m.item_no} className="flex-shrink-0 w-28 cursor-pointer group" onClick={() => navigate(`/minifigs/${m.item_no}-${generateSlug(m.name)}`)}>
                       <div className="aspect-square bg-slate-50 rounded-2xl mb-3 flex items-center justify-center relative overflow-hidden border border-slate-100 shadow-sm group-hover:border-indigo-200 transition-all">
                         <div className={`absolute top-2 left-2 z-30 w-5 h-5 rounded-lg flex items-center justify-center font-black text-[9px] ring-2 ring-slate-200 shadow-md ${getRankColor(m.rank)}`}>{m.rank}</div>
-                        
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleOwned(m.item_no, m.owned);
-                          }}
-                          className="absolute top-1 right-1 z-30 w-8 h-8 flex items-center justify-center transition-all duration-200 active:scale-75 focus:outline-none"
-                        >
-                          <i className={`${m.owned ? 'fas text-rose-500' : 'far text-slate-300'} fa-heart text-[12px]`}></i>
-                        </button>
-
                         {m.last_stock_min_price ? (
-                          <div className="absolute bottom-2 right-2 z-30 bg-indigo-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-sm border border-indigo-400/50 backdrop-blur-sm">
+                          <div className="absolute top-2 right-2 z-30 bg-indigo-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-sm border border-indigo-400/50 backdrop-blur-sm">
                             ${m.last_stock_min_price.toFixed(2)}
                           </div>
                         ) : null}

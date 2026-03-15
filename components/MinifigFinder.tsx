@@ -116,15 +116,16 @@ const MinifigFinder: React.FC<MinifigFinderProps> = ({ allMinifigs }) => {
       } else {
         throw new Error("No similar items detected in the database.");
       }
-    } catch (err: any) {
-      if (err.message === "QUOTA_EXCEEDED") {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage === "QUOTA_EXCEEDED") {
         setError({ 
           title: "Limit Reached", 
           msg: "AI capacity reached. Please try manual search or wait a minute.", 
           isQuota: true
         });
       } else {
-        setError({ title: "Scan Failed", msg: err.message || "Connection error.", isQuota: false });
+        setError({ title: "Scan Failed", msg: errorMessage || "Connection error.", isQuota: false });
       }
     } finally {
       setIsScanning(false);

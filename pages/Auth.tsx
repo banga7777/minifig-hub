@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
-import SEO from '../components/SEO';
+import { updateCanonical, setNoIndex } from '../utils/seo';
 
 const STORAGE_KEY_EMAIL = 'minifig_saved_email';
 const STORAGE_KEY_PW = 'minifig_saved_password';
@@ -39,6 +39,12 @@ const Auth: React.FC<AuthProps> = ({ onShowLegalModal }) => {
   useEffect(() => {
     onShowLegalModal(!!showLegalModal);
   }, [showLegalModal, onShowLegalModal]);
+
+  useEffect(() => {
+    updateCanonical('/auth');
+    setNoIndex(true);
+    return () => setNoIndex(false);
+  }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,8 +84,8 @@ const Auth: React.FC<AuthProps> = ({ onShowLegalModal }) => {
           setIsLogin(true);
         }
       }
-    } catch (err: any) {
-      let msg = err.message || 'An unexpected error occurred.';
+    } catch (err: unknown) {
+      let msg = err instanceof Error ? err.message : 'An unexpected error occurred.';
       let title = isLogin ? 'Login Failed' : 'Sign Up Failed';
       setError({ title, message: msg });
     } finally {
@@ -89,11 +95,6 @@ const Auth: React.FC<AuthProps> = ({ onShowLegalModal }) => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden font-['Outfit']">
-      <SEO 
-        title="Sign In / Sign Up | Minifig Hub"
-        description="Sign in to your Minifig Hub account to track your LEGO minifigure collection."
-        noindex={true}
-      />
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-600 rounded-full blur-[160px] opacity-10 -mr-64 -mt-64"></div>
       
       <div className="w-full max-w-sm relative z-10">

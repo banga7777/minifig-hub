@@ -73,8 +73,8 @@ export const geminiService = {
         reasoning: `Vector search matched this figure with ${(topMatch.similarity * 100).toFixed(1)}% confidence based on visual signature.`
       };
 
-    } catch (err: any) {
-      if (err?.message?.includes('429')) {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message?.includes('429')) {
         throw new Error("QUOTA_EXCEEDED");
       }
       console.error("Vector Pipeline Error:", err);

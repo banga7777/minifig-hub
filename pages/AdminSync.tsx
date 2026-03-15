@@ -89,9 +89,9 @@ const AdminSync: React.FC = () => {
             currentProcessed++;
             setProcessedCount(currentProcessed);
             addLog(`SUCCESS: [${item.item_no}] Vectorized`);
-          } catch (err: any) {
+          } catch (err: unknown) {
             console.error(`Error on ${item.item_no}:`, err);
-            addLog(`ERROR: [${item.item_no}] ${err.message}`);
+            addLog(`ERROR: [${item.item_no}] ${err instanceof Error ? err.message : String(err)}`);
             // Small extra delay on error
             await new Promise(r => setTimeout(r, 2000));
           }
@@ -103,9 +103,9 @@ const AdminSync: React.FC = () => {
 
       setStatus("DATABASE SYNC COMPLETE");
       addLog("ALL TARGETS PROCESSED SUCCESSFULLY");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus("SYNC INTERRUPTED");
-      addLog(`FATAL ERROR: ${err.message}`);
+      addLog(`FATAL ERROR: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsSyncing(false);
     }

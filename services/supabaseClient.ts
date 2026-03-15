@@ -43,11 +43,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           }
           
           return response;
-        } catch (err: any) {
+        } catch (err: unknown) {
           lastError = err;
           
           // Don't retry if aborted
-          if (err.name === 'AbortError' || err.message?.includes('signal is aborted')) {
+          if (err instanceof Error && (err.name === 'AbortError' || err.message?.includes('signal is aborted'))) {
             throw err;
           }
           

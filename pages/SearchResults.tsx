@@ -86,8 +86,8 @@ const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggl
         
         if (error) throw error;
         setSetMatchedIds(new Set(data ? data.map(d => d.item_no) : []));
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== 'AbortError') {
           console.error('Error fetching set matches:', err);
           setSetMatchedIds(new Set());
         }
