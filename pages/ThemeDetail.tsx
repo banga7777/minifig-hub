@@ -5,40 +5,28 @@ import MinifigCard from '../components/MinifigCard';
 import { Minifigure, UserProfile } from '../types';
 import SEO from '../components/SEO';
 import { generateSlug } from '../utils/slug';
-import { useThemeMinifigs, useThemes } from '../src/hooks/useMinifigs';
 
 interface ThemeDetailProps {
-  onToggleOwned: (id: string, currentOwned?: boolean) => void;
+  onToggleOwned: (id: string) => void;
   onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
-  user: UserProfile | null;
-  onShowSubCatModal: (isOpen: boolean) => void;
   allMinifigs: Minifigure[];
+  onShowSubCatModal: (isOpen: boolean) => void; 
   dataLoading: boolean;
+  user: UserProfile | null;
 }
 
 type SortOption = 'newest' | 'name' | 'id' | 'value';
 type SortOrder = 'asc' | 'desc';
 type OwnedFilter = 'all' | 'owned' | 'missing';
 
-const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOwned, user, onShowSubCatModal, allMinifigs, dataLoading }) => {
+const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOwned, allMinifigs, onShowSubCatModal, dataLoading, user }) => {
   const { themeName } = useParams<{ themeName: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { data: themes = [] } = useThemes();
-  const theme = useMemo(() => themes.find(t => t.slug === themeName), [themes, themeName]);
-  const { data: themeMinifigsData = [], isLoading: themeLoading } = useThemeMinifigs(theme?.name || '', user?.id);
-  
-  // Merge optimistic owned status from allMinifigs
-  const themeMinifigs = useMemo(() => {
-    return themeMinifigsData.map(m => {
-      const globalMatch = allMinifigs.find(am => am.item_no === m.item_no);
-      return globalMatch ? { ...m, owned: globalMatch.owned || m.owned } : m;
-    });
-  }, [themeMinifigsData, allMinifigs]);
   
   // Restore scroll position with retry mechanism
   React.useLayoutEffect(() => {
-    if (themeLoading) return;
+    if (dataLoading) return;
     
     const savedPos = sessionStorage.getItem(`scroll_pos_${location.key}`);
     if (!savedPos) return;
@@ -62,7 +50,7 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
     }, 100); // Check every 100ms
 
     return () => clearInterval(interval);
-  }, [themeLoading, location.key]);
+  }, [dataLoading, location.key]);
   const [searchTerm, setSearchTerm] = useState(() => {
     const saved = sessionStorage.getItem(`theme_detail_search_${themeName}`);
     console.log(`[Debug] Initial searchTerm for ${themeName}:`, saved);
@@ -133,6 +121,11 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
     setSelectedItems(new Set());
   }, [searchTerm, activeSubCat, filterOwned, sortBy, sortOrder]);
 
+  const themeMinifigs = useMemo(() => {
+    const targetSlug = themeName?.toLowerCase();
+    return allMinifigs.filter(m => m.theme_slug === targetSlug);
+  }, [allMinifigs, themeName]);
+
   useEffect(() => {
     // Check if user already has a preference
     const savedSortBy = sessionStorage.getItem(`theme_detail_sortby_${themeName}`);
@@ -167,7 +160,7 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
     result.sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'name') {
-        comparison = a.decoded_name.localeCompare(b.decoded_name, undefined, { sensitivity: 'base' });
+        comparison = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
       } else if (sortBy === 'id') {
         comparison = a.item_no.localeCompare(b.item_no);
       } else if (sortBy === 'newest') {
@@ -268,7 +261,7 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
   const completionRate = totalCount > 0 ? (ownedCount / totalCount) * 100 : 0;
   const defaultImage = themeMinifigs[0]?.image_url;
   
-  if (themeLoading) {
+  if (dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -283,7 +276,6 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
         description={`Explore and track your LEGO ${displayThemeName} minifigure collection. View market values, rarity, and completion progress.`}
         keywords={`LEGO, ${displayThemeName}, Minifigure, Collection, Price Guide`}
         ogImage={customImage || defaultImage}
-        canonical={`https://minifig-hub.com/themes/${themeName}`}
       />
       <div className="bg-slate-900 pt-8 pb-14 px-5 relative overflow-hidden">
         <div className="absolute inset-0 z-0">{customImage ? <img src={customImage} className="w-full h-full object-cover opacity-30 blur-sm" alt="" /> : <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-600/10 rounded-full blur-[60px] -mr-16 -mt-16"></div>}<div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div></div>

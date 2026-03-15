@@ -1,56 +1,69 @@
 
 import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserProfile, Theme, Minifigure } from '../types';
+import { Minifigure, Theme, UserProfile } from '../types';
 import SEO from '../components/SEO';
 import { generateSlug } from '../utils/slug';
-import { useThemes } from '../src/hooks/useMinifigs';
 
 interface ThemeListProps {
-  user: UserProfile | null;
   allMinifigs: Minifigure[];
+  user: UserProfile | null;
 }
 
 type SortOption = 'MOST_FIGS' | 'PROGRESS' | 'NAME';
 type StatusFilter = 'ALL' | 'COMPLETED' | 'STARTED' | 'NOT_STARTED';
 
-const ThemeList: React.FC<ThemeListProps> = ({ user, allMinifigs }) => {
+const ThemeList: React.FC<ThemeListProps> = ({ allMinifigs, user }) => {
   const navigate = useNavigate();
-  const { data: themes = [], isLoading: themesLoading } = useThemes();
-  
-  // Calculate progress directly from allMinifigs prop
-  const progress = useMemo(() => {
-    const counts: Record<string, number> = {};
-    allMinifigs.forEach(m => {
-      if (m.owned) {
-        counts[m.theme_name] = (counts[m.theme_name] || 0) + 1;
-      }
-    });
-    return counts;
-  }, [allMinifigs]);
-
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('MOST_FIGS');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
 
   const themesData = useMemo(() => {
-    return themes.map((t, index) => {
-      const ownedCount = progress[t.name] || 0;
-      const completionRate = t.minifig_count > 0 ? Math.round((ownedCount / t.minifig_count) * 100) : 0;
-      const customImg = localStorage.getItem(`theme_img_v1_${t.name}`);
+    const themeMap = new Map<string, { count: number; owned: number; representativeImage: string; latestYear: number }>();
+    
+    allMinifigs.forEach(m => {
+      if (!themeMap.has(m.theme_name)) {
+        themeMap.set(m.theme_name, { 
+          count: 0, 
+          owned: 0, 
+          representativeImage: m.image_url, 
+          latestYear: m.year_released 
+        });
+      }
       
+      const current = themeMap.get(m.theme_name)!;
+      let newImage = current.representativeImage;
+      let newYear = current.latestYear;
+      
+      if (m.year_released > current.latestYear) {
+        newImage = m.image_url;
+        newYear = m.year_released;
+      }
+
+      themeMap.set(m.theme_name, { 
+        count: current.count + 1, 
+        owned: current.owned + (m.owned ? 1 : 0),
+        representativeImage: newImage,
+        latestYear: newYear
+      });
+    });
+
+    return Array.from(themeMap.entries()).map(([name, data], index) => {
+      const customImg = localStorage.getItem(`theme_img_v1_${name}`);
+      const completionRate = data.count > 0 ? Math.round((data.owned / data.count) * 100) : 0;
       return {
         id: String(index),
-        name: t.name,
-        slug: generateSlug(t.name),
-        minifig_count: t.minifig_count,
-        owned_count: ownedCount,
+        name,
+        slug: generateSlug(name),
+        minifig_count: data.count,
+        owned_count: data.owned,
         completionRate,
-        image_url: t.image_url,
+        image_url: data.representativeImage,
         custom_image_url: customImg || undefined
       };
     });
-  }, [themes, progress]);
+  }, [allMinifigs]);
 
   const filteredAndSortedThemes = useMemo(() => {
     let result = themesData.filter(t => {
@@ -73,21 +86,12 @@ const ThemeList: React.FC<ThemeListProps> = ({ user, allMinifigs }) => {
     return result;
   }, [themesData, searchTerm, sortBy, statusFilter]);
 
-  if (themesLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="pb-40 bg-slate-50 min-h-screen">
       <SEO 
         title="LEGO Minifigure Themes | Series Collection Tracker"
         description="Browse and track your LEGO minifigure collection by theme. From Star Wars to Marvel, manage your progress across all series."
         keywords="LEGO Themes, LEGO Series, Minifigure Collection, Star Wars LEGO, Marvel LEGO, Ninjago LEGO"
-        canonical="https://minifig-hub.com/themes"
       />
       <div className="bg-slate-900 pt-10 pb-20 px-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-600/10 rounded-full blur-[80px] -mr-20 -mt-20"></div>

@@ -6,14 +6,13 @@ import { Minifigure, UserProfile } from '../types';
 import { generateSlug } from '../utils/slug';
 import { supabase } from '../services/supabaseClient';
 import SEO from '../components/SEO';
-import { useSearchMinifigs } from '../src/hooks/useMinifigs';
 
 interface SearchResultsProps {
-  onToggleOwned: (id: string, currentOwned?: boolean) => void;
-  onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
-  user: UserProfile | null;
   allMinifigs: Minifigure[];
+  onToggleOwned: (id: string) => void;
+  onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
   dataLoading: boolean;
+  user: UserProfile | null;
 }
 
 type SortOption = 'relevance' | 'year' | 'name' | 'id' | 'value';
@@ -26,19 +25,10 @@ const decodeHTMLEntities = (text: string) => {
   return textArea.value;
 };
 
-const SearchResults: React.FC<SearchResultsProps> = ({ onToggleOwned, onBulkToggleOwned, user, allMinifigs, dataLoading }) => {
+const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggleOwned, onBulkToggleOwned, dataLoading, user }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryFromUrl = searchParams.get('q') || '';
-  const { data: searchResultsData = [], isLoading: searchLoading } = useSearchMinifigs(queryFromUrl, user?.id);
-  
-  // Merge optimistic owned status from allMinifigs
-  const searchResults = useMemo(() => {
-    return searchResultsData.map(m => {
-      const globalMatch = allMinifigs.find(am => am.item_no === m.item_no);
-      return globalMatch ? { ...m, owned: globalMatch.owned } : m;
-    });
-  }, [searchResultsData, allMinifigs]);
   
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     const saved = sessionStorage.getItem(`search_results_sortby_${queryFromUrl}`);
@@ -141,28 +131,69 @@ const SearchResults: React.FC<SearchResultsProps> = ({ onToggleOwned, onBulkTogg
   };
 
   const filteredResults = useMemo(() => {
-    let result = searchResults;
+    const q = queryFromUrl.trim().toLowerCase();
+    if (!q && setMatchedIds.size === 0) return [];
     
-    if (statusFilter !== 'ALL') {
-      result = result.filter(m => statusFilter === 'OWNED' ? m.owned : !m.owned);
-    }
-    
-    result = [...result].sort((a, b) => {
-      let comparison = 0;
-      if (sortBy === 'name') {
-        comparison = a.decoded_name.localeCompare(b.decoded_name, undefined, { sensitivity: 'base' });
-      } else if (sortBy === 'id') {
-        comparison = a.item_no.localeCompare(b.item_no);
-      } else if (sortBy === 'year') {
-        comparison = a.year_released - b.year_released;
-      } else if (sortBy === 'value') {
-        comparison = (a.last_stock_min_price || 0) - (b.last_stock_min_price || 0);
+    const terms = q.split(/\s+/).filter(t => t.length > 0);
+    const normalizedQ = q.replace(/\s+/g, '');
+
+    let resultWithScores = allMinifigs.map(m => {
+      const mName = m.decoded_name.toLowerCase();
+      const mID = m.item_no.toLowerCase();
+      const mTheme = m.theme_name.toLowerCase();
+      const mSub = (m.sub_category || '').toLowerCase();
+      
+      let score = 0;
+      const matchesSet = setMatchedIds.has(m.item_no);
+      
+      let matchesText = false;
+      if (terms.length > 0) {
+        matchesText = true;
+        for (let i = 0; i < terms.length; i++) {
+          const t = terms[i];
+          if (!mName.includes(t) && !mID.includes(t) && !mTheme.includes(t) && !mSub.includes(t)) {
+            matchesText = false;
+            break;
+          }
+        }
       }
-      return sortOrder === 'asc' ? comparison : -comparison;
+
+      if (!matchesText && !matchesSet) return { minifig: m, score: 0 };
+      
+      score += 100;
+      if (matchesSet) score += 5000;
+      if (mID === q || mID === normalizedQ) score += 10000;
+      if (mName === q || mName === normalizedQ) score += 3000;
+      else if (mName.includes(q) || mName.includes(normalizedQ)) score += 1000;
+      
+      for (let i = 0; i < terms.length; i++) {
+        if (mName.includes(terms[i])) score += 500;
+      }
+      
+      return { minifig: m, score };
+    }).filter(item => item.score > 0);
+
+    let finalResult = resultWithScores.filter(item => {
+      if (statusFilter === 'ALL') return true;
+      if (statusFilter === 'OWNED') return item.minifig.owned;
+      if (statusFilter === 'MISSING') return !item.minifig.owned;
+      return true;
     });
-    
-    return result;
-  }, [searchResults, sortBy, sortOrder, statusFilter]);
+
+    return finalResult.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'relevance') {
+        comparison = b.score - a.score;
+        return comparison;
+      }
+      if (sortBy === 'name') comparison = a.minifig.decoded_name.localeCompare(b.minifig.decoded_name);
+      else if (sortBy === 'id') comparison = a.minifig.item_no.localeCompare(b.minifig.item_no);
+      else if (sortBy === 'year') comparison = a.minifig.year_released - b.minifig.year_released;
+      else if (sortBy === 'value') comparison = (a.minifig.last_stock_min_price || 0) - (b.minifig.last_stock_min_price || 0);
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    }).map(item => item.minifig);
+  }, [allMinifigs, queryFromUrl, sortBy, sortOrder, statusFilter, setMatchedIds]);
 
   const handleBulkAction = async (shouldOwn: boolean) => {
     const itemNos = Array.from(selectedItems);
@@ -194,7 +225,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ onToggleOwned, onBulkTogg
       }
       setSelectedItems(newSelection);
     } else {
-      const minifig = searchResults.find((m: Minifigure) => m.item_no === itemNo);
+      const minifig = allMinifigs.find(m => m.item_no === itemNo);
       if (minifig) {
         navigate(`/minifigs/${itemNo}-${generateSlug(minifig.name)}`);
       }
@@ -223,7 +254,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ onToggleOwned, onBulkTogg
 
   const visibleResults = useMemo(() => filteredResults.slice(0, visibleCount), [filteredResults, visibleCount]);
   
-  if (searchLoading) {
+  if (dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -237,7 +268,6 @@ const SearchResults: React.FC<SearchResultsProps> = ({ onToggleOwned, onBulkTogg
         title={`Search Results for "${queryFromUrl}" | Minifig Hub`}
         description={`Find LEGO minifigures matching "${queryFromUrl}". Explore market values, rarity, and collection status.`}
         keywords={`LEGO Search, Minifigure Search, ${queryFromUrl}`}
-        canonical={`https://minifig-hub.com/search?q=${encodeURIComponent(queryFromUrl)}`}
       />
       <div className="max-w-5xl mx-auto px-4">
         <header className="mb-6 flex items-end justify-between"><h1 className="text-2xl font-black text-slate-900 tracking-tighter mb-1 italic uppercase px-1">SEARCH RESULTS</h1><div className="flex items-center gap-3"><p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest px-1">Found {filteredResults.length} matching items</p>{setMatchedIds.size > 0 && <span className="bg-emerald-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase flex-shrink-0">Set Match</span>}</div></header>

@@ -1,21 +1,20 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../services/supabaseClient';
+import { useNavigate, Link } from 'react-router-dom';
+import MinifigCard from '../components/MinifigCard';
 import { Minifigure, UserProfile } from '../types';
 import { generateSlug } from '../utils/slug';
-import { decodeHTMLEntities } from '../utils/text';
-import MinifigCard from '../components/MinifigCard';
+import { supabase } from '../services/supabaseClient';
 import SEO from '../components/SEO';
-import { useNavigate, Link } from 'react-router-dom';
 
-interface CollectionProps {
-  onToggleOwned: (id: string, currentOwned?: boolean) => void;
+export interface CollectionProps {
+  allMinifigs: Minifigure[];
+  onToggleOwned: (id: string) => void;
   onBulkToggleOwned: (ids: string[], shouldOwn: boolean) => Promise<boolean>;
   user: UserProfile | null;
   onShowSettings: (isOpen: boolean) => void; 
   onShowDeleteModal: (isOpen: boolean) => void;
-  allMinifigs: Minifigure[];
+  dataLoading: boolean;
 }
 
 type SortOption = 'id' | 'newest' | 'name' | 'theme' | 'value';
@@ -23,27 +22,18 @@ type GroupingMode = 'theme' | 'none';
 type GridCols = 2 | 3 | 4 | 5;
 type NestedGroup = Record<string, Record<string, Minifigure[]>>;
 
+const decodeHTMLEntities = (text: string) => {
+  const textArea = document.createElement('textarea');
+  textArea.innerHTML = text;
+  return textArea.value;
+};
+
 const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
 };
 
-const Collection: React.FC<CollectionProps> = ({ onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal, allMinifigs }) => {
+const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal, dataLoading }) => {
   const navigate = useNavigate();
-  
-  const ownedMinifigs = useMemo(() => allMinifigs.filter(m => m.owned), [allMinifigs]);
-  
-  const { data: stats } = useQuery({
-    queryKey: ['minifigStats'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('minifigures')
-        .select('*', { count: 'exact', head: true });
-      if (error) throw error;
-      return { totalCount: count || 0 };
-    }
-  });
-  const totalCount = stats?.totalCount || 0;
-
   const [filter, setFilter] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     const saved = sessionStorage.getItem('collection_sortby');
@@ -118,10 +108,13 @@ const Collection: React.FC<CollectionProps> = ({ onToggleOwned, onBulkToggleOwne
     setSelectedItems(new Set());
   }, [filter, sortBy, groupingMode]);
 
-  const totalAvgValue = useMemo(() => ownedMinifigs.reduce((sum: number, m: Minifigure) => sum + (m.last_stock_avg_price || 0), 0), [ownedMinifigs]);
-  const totalMinValue = useMemo(() => ownedMinifigs.reduce((sum: number, m: Minifigure) => sum + (m.last_stock_min_price || 0), 0), [ownedMinifigs]);
+  const ownedMinifigs = useMemo(() => allMinifigs.filter(m => m.owned), [allMinifigs]);
   
-  const completionRate = (totalCount > 0 && ownedMinifigs.length > 0) ? (ownedMinifigs.length / totalCount) * 100 : 0;
+  const totalAvgValue = useMemo(() => ownedMinifigs.reduce((sum, m) => sum + (m.last_stock_avg_price || 0), 0), [ownedMinifigs]);
+  const totalMinValue = useMemo(() => ownedMinifigs.reduce((sum, m) => sum + (m.last_stock_min_price || 0), 0), [ownedMinifigs]);
+  
+  const totalCount = allMinifigs.length;
+  const completionRate = totalCount > 0 ? (ownedMinifigs.length / totalCount) * 100 : 0;
   const level = Math.floor(ownedMinifigs.length / 100);
 
   const displayedList = useMemo(() => {
@@ -136,10 +129,10 @@ const Collection: React.FC<CollectionProps> = ({ onToggleOwned, onBulkToggleOwne
     }
     result.sort((a, b) => {
       if (sortBy === 'id') return b.item_no.localeCompare(a.item_no);
-      if (sortBy === 'name') return a.decoded_name.toLowerCase().localeCompare(b.decoded_name.toLowerCase());
+      if (sortBy === 'name') return decodeHTMLEntities(a.name).toLowerCase().localeCompare(decodeHTMLEntities(b.name).toLowerCase());
       if (sortBy === 'theme') {
         const themeComp = a.theme_name.localeCompare(b.theme_name);
-        return themeComp !== 0 ? themeComp : a.decoded_name.toLowerCase().localeCompare(b.decoded_name.toLowerCase());
+        return themeComp !== 0 ? themeComp : decodeHTMLEntities(a.name).toLowerCase().localeCompare(decodeHTMLEntities(b.name).toLowerCase());
       }
       if (sortBy === 'value') return (b.last_stock_min_price || 0) - (a.last_stock_min_price || 0);
       return sortBy === 'newest' ? (b.year_released - a.year_released) || b.item_no.localeCompare(a.item_no) : 0;
@@ -244,13 +237,20 @@ const Collection: React.FC<CollectionProps> = ({ onToggleOwned, onBulkToggleOwne
 
   const gridClass = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4', 5: 'grid-cols-5' }[gridCols];
   
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-slate-50 min-h-screen pb-44 font-['Outfit'] relative">
       <SEO 
         title="My Collection" 
         description="View and manage your personal LEGO minifigure collection. Track your progress and collection value." 
         noindex={true}
-        canonical="https://minifig-hub.com/collection"
       />
       <div className="bg-slate-900 pt-6 pb-12 px-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600 rounded-full blur-[80px] opacity-20 -mr-24 -mt-24"></div>
