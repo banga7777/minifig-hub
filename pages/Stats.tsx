@@ -3,31 +3,27 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Minifigure, UserProfile } from '../types';
 import SEO from '../components/SEO';
-import { useOwnedMinifigs, useMinifigStats } from '../src/hooks/useMinifigs';
 
 interface StatsProps {
-  user: UserProfile | null;
   ownedMinifigs: Minifigure[];
   allMinifigs: Minifigure[];
+  user: UserProfile | null;
 }
 
 const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
 };
 
-const Stats: React.FC<StatsProps> = ({ user }) => {
+const Stats: React.FC<StatsProps> = ({ ownedMinifigs, allMinifigs, user }) => {
   const navigate = useNavigate();
-  const { data: ownedMinifigs = [] } = useOwnedMinifigs(user?.id);
-  const { data: globalStats } = useMinifigStats();
-
   const stats = useMemo(() => {
-    const totalFigs = globalStats?.totalCount || 0;
+    const totalFigs = allMinifigs.length;
     const ownedTotal = ownedMinifigs.length;
     const completion = totalFigs > 0 ? (ownedTotal / totalFigs) * 100 : 0;
     
     // 가치 합계 계산
-    const totalAvgValue = ownedMinifigs.reduce((sum, m) => sum + (m.last_stock_avg_price || 0), 0);
-    const totalMinValue = ownedMinifigs.reduce((sum, m) => sum + (m.last_stock_min_price || 0), 0);
+    const totalAvgValue = ownedMinifigs.reduce((sum: number, m: Minifigure) => sum + (m.last_stock_avg_price || 0), 0);
+    const totalMinValue = ownedMinifigs.reduce((sum: number, m: Minifigure) => sum + (m.last_stock_min_price || 0), 0);
 
     // 테마별 보유 수량
     const themeCounts = new Map<string, number>();
@@ -35,25 +31,25 @@ const Stats: React.FC<StatsProps> = ({ user }) => {
       themeCounts.set(m.theme_name, (themeCounts.get(m.theme_name) || 0) + 1);
     });
     const topThemes = Array.from(themeCounts.entries())
-      .sort((a, b) => b[1] - a[1])
+      .sort((a: [string, number], b: [string, number]) => b[1] - a[1])
       .slice(0, 5);
 
     // 연도별 보유 수량 (타임라인)
     const yearCounts = new Map<number, number>();
-    ownedMinifigs.forEach(m => {
+    ownedMinifigs.forEach((m: Minifigure) => {
       const year = m.year_released;
       if (year > 0) yearCounts.set(year, (yearCounts.get(year) || 0) + 1);
     });
     
     const recentYears = Array.from(yearCounts.entries())
-      .sort((a, b) => a[0] - b[0]);
+      .sort((a: [number, number], b: [number, number]) => a[0] - b[0]);
       
     return { totalFigs, ownedTotal, completion, topThemes, recentYears, totalAvgValue, totalMinValue };
-  }, [ownedMinifigs, globalStats]);
+  }, [ownedMinifigs, allMinifigs]);
 
   const maxYearCount = useMemo(() => {
     if (stats.recentYears.length === 0) return 1;
-    return Math.max(...stats.recentYears.map(y => y[1]));
+    return Math.max(...stats.recentYears.map((y: [number, number]) => y[1]));
   }, [stats.recentYears]);
 
   const handleBack = () => {
