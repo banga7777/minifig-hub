@@ -1,0 +1,25 @@
+{
+  "name": "Minifig Hub",
+  "short_name": "MinifigHub",
+  "description": "The ultimate LEGO Minifigure collection tracker. Manage, explore, and grow your collection.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#4f46e5",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "requestFramePermissions": [],
+  "categories": [
+    "lifestyle",
+    "hobbies",
+    "entertainment"
+  ],
+  "lang": "en-US",
+  "dir": "ltr"
+}
