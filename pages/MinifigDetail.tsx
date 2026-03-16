@@ -46,60 +46,16 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifig
   const [appearanceSummary, setAppearanceSummary] = useState<AppearanceSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   
-  const [minifig, setMinifig] = useState<Minifigure | undefined>(undefined);
-  const [isFetchingMinifig, setIsFetchingMinifig] = useState(false);
+  const minifig = useMemo(() => {
+    if (!id) return undefined;
+    // Try exact match first
+    let found = allMinifigs.find(m => m.item_no === id);
+    if (found) return found;
 
-  useEffect(() => {
-    if (!id) return;
-
-    // Try to find in local state first (might be owned or recent)
-    let found = allMinifigs.find(m => m.item_no === id || id.startsWith(`${m.item_no}-`));
-    if (found) {
-      setMinifig(found);
-      return;
-    }
-
-    // If not found, fetch from Supabase
-    const controller = new AbortController();
-    const fetchMinifig = async () => {
-      setIsFetchingMinifig(true);
-      try {
-        const itemNo = id.includes('-') ? id.split('-')[0] : id;
-        const { data, error } = await supabase
-          .from('minifigures')
-          .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_stock_min_price, last_stock_avg_price, stock_updated_at')
-          .eq('item_no', itemNo)
-          .abortSignal(controller.signal)
-          .single();
-
-        if (error) throw error;
-        if (data) {
-          setMinifig({
-            item_no: data.item_no,
-            name: data.name_en || 'Untitled',
-            decoded_name: decodeHTMLEntities(data.name_en || 'Untitled'),
-            theme_name: data.main_category || 'Other',
-            theme_slug: generateSlug(data.main_category || 'Other'),
-            sub_category: data.sub_category || '',
-            image_url: data.image_url || `https://img.bricklink.com/ItemImage/MN/0/${data.item_no.toUpperCase()}.png`,
-            category_id: data.category_id || 0,
-            year_released: data.year_released || 0,
-            owned: false, // If it wasn't in allMinifigs, it's likely not owned (or we'll find out on next sync)
-            last_stock_min_price: data.last_stock_min_price,
-            last_stock_avg_price: data.last_stock_avg_price,
-            stock_updated_at: data.stock_updated_at
-          });
-        }
-      } catch (err: unknown) {
-        if (err instanceof Error && err.name !== 'AbortError') console.error("Minifig fetch failed:", err);
-      } finally {
-        setIsFetchingMinifig(false);
-      }
-    };
-
-    fetchMinifig();
-    return () => controller.abort();
-  }, [id, allMinifigs]);
+    // If not found, it might be a slug-based ID (item_no-slug)
+    // We look for a minifig whose item_no matches the beginning of the ID followed by a hyphen
+    return allMinifigs.find(m => id.startsWith(`${m.item_no}-`));
+  }, [allMinifigs, id]);
 
   useEffect(() => {
     if (!minifig) return;

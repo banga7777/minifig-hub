@@ -5,7 +5,6 @@ import MinifigCard from '../components/MinifigCard';
 import { Minifigure, UserProfile } from '../types';
 import SEO from '../components/SEO';
 import { generateSlug } from '../utils/slug';
-import { supabase } from '../services/supabaseClient';
 
 interface ThemeDetailProps {
   onToggleOwned: (id: string) => void;
@@ -122,68 +121,10 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
     setSelectedItems(new Set());
   }, [searchTerm, activeSubCat, filterOwned, sortBy, sortOrder]);
 
-  const [themeMinifigs, setThemeMinifigs] = useState<Minifigure[]>([]);
-  const [isFetchingTheme, setIsFetchingTheme] = useState(false);
-
-  useEffect(() => {
+  const themeMinifigs = useMemo(() => {
     const targetSlug = themeName?.toLowerCase();
-    if (!targetSlug) return;
-
-    const controller = new AbortController();
-    const fetchThemeData = async () => {
-      setIsFetchingTheme(true);
-      try {
-        // First, get the actual theme name from the slug if possible, or just use the slug
-        // We'll query by main_category (theme)
-        // Since we don't have a theme_slug in the DB, we might need to be clever or just use the slug to match
-        // Actually, the slug is generated from main_category. 
-        // We can fetch all minifigures and filter by slug in JS, but that's what we wanted to avoid.
-        // Better: fetch where main_category is like the slug (replacing hyphens with spaces)
-        const likelyThemeName = targetSlug.replace(/-/g, ' ');
-        
-        const { data, error } = await supabase
-          .from('minifigures')
-          .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_stock_min_price, last_stock_avg_price, stock_updated_at')
-          .ilike('main_category', `%${likelyThemeName}%`)
-          .abortSignal(controller.signal);
-
-        if (error) throw error;
-
-        if (data) {
-          const enriched = data.map((m: any) => ({
-            item_no: m.item_no,
-            name: m.name_en || 'Untitled',
-            decoded_name: decodeHTMLEntities(m.name_en || 'Untitled'),
-            theme_name: m.main_category || 'Other',
-            theme_slug: generateSlug(m.main_category || 'Other'),
-            sub_category: m.sub_category || '',
-            image_url: m.image_url || `https://img.bricklink.com/ItemImage/MN/0/${m.item_no.toUpperCase()}.png`,
-            category_id: m.category_id || 0,
-            year_released: m.year_released || 0,
-            owned: allMinifigs.find(am => am.item_no === m.item_no)?.owned || false,
-            last_stock_min_price: m.last_stock_min_price,
-            last_stock_avg_price: m.last_stock_avg_price,
-            stock_updated_at: m.stock_updated_at
-          })).filter((m: any) => m.theme_slug === targetSlug); // Final precise filter
-          
-          setThemeMinifigs(enriched);
-        }
-      } catch (err: unknown) {
-        if (err instanceof Error && err.name !== 'AbortError') console.error("Theme fetch failed:", err);
-      } finally {
-        setIsFetchingTheme(false);
-      }
-    };
-
-    fetchThemeData();
-    return () => controller.abort();
-  }, [themeName, allMinifigs]);
-
-  const decodeHTMLEntities = (text: string) => {
-    const textArea = document.createElement('textarea');
-    textArea.innerHTML = text;
-    return textArea.value;
-  };
+    return allMinifigs.filter(m => m.theme_slug === targetSlug);
+  }, [allMinifigs, themeName]);
 
   useEffect(() => {
     // Check if user already has a preference

@@ -26,7 +26,7 @@ import Footer from './src/components/Footer';
 import ProgressBar from './components/ProgressBar';
 
 import { supabase } from './services/supabaseClient';
-import { Minifigure, UserProfile, PopularMinifig, CollectorRank, MarketMover } from './types';
+import type { Minifigure, UserProfile, PopularMinifig, CollectorRank, MarketMover } from './types';
 import { AdMobService } from './services/adMobService';
 import AdBanner from './components/AdBanner';
 import { Capacitor } from '@capacitor/core';

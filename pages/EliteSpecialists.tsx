@@ -5,7 +5,6 @@ import { Minifigure } from '../types';
 import MinifigCard from '../components/MinifigCard';
 import SEO from '../components/SEO';
 import { MANDALORIAN_DATA, ELITE_CLONE_DATA, IMPERIAL_GUARD_DATA, EliteSection } from '../src/constants/eliteData';
-import { useMinifigLoader, LoaderConfig } from '../hooks/useMinifigLoader';
 
 interface EliteSpecialistsProps {
   allMinifigs: Minifigure[];
@@ -30,17 +29,10 @@ const EliteSubArchive = ({ allMinifigs, onToggleOwned, faction }: { allMinifigs:
     return null;
   }, [data, subId]);
 
-  const loaderConfigs = useMemo(() => {
-    if (!subSection) return [];
-    return subSection.sub.items.map(item => ({ ids: item.ids }));
-  }, [subSection]);
-
-  const { combinedMinifigs, isLoading } = useMinifigLoader(allMinifigs, loaderConfigs);
-
   if (!subSection) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">Sub-archive not found</div>;
 
   const getFigs = (ids: string[]) => 
-    combinedMinifigs
+    allMinifigs
       .filter(m => ids.includes(m.item_no))
       .sort((a, b) => a.item_no.localeCompare(b.item_no));
 
@@ -127,22 +119,8 @@ const ArchiveView = ({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
 
-  const loaderConfigs = useMemo(() => {
-    const configs: LoaderConfig[] = [];
-    data.forEach(section => {
-      section.subsections.forEach(sub => {
-        sub.items.forEach(item => {
-          configs.push({ ids: item.ids });
-        });
-      });
-    });
-    return configs;
-  }, [data]);
-
-  const { combinedMinifigs } = useMinifigLoader(allMinifigs, loaderConfigs);
-
   const getFigs = (ids: string[]) => 
-    combinedMinifigs
+    allMinifigs
       .filter(m => ids.includes(m.item_no))
       .sort((a, b) => a.item_no.localeCompare(b.item_no));
 
@@ -361,16 +339,8 @@ const EliteSpecialists: React.FC<EliteSpecialistsProps> = ({ allMinifigs, onTogg
 const EliteHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigure[], onToggleOwned: (id: string) => void }) => {
   const navigate = useNavigate();
 
-  const loaderConfigs = useMemo(() => [
-    { ids: ['sw1057', 'sw1135', 'sw1166', 'sw1164'] }, // Mandos
-    { ids: ['sw1148', 'sw1149', 'sw0377', 'sw0378'] }, // Clones
-    { ids: ['sw0040', 'sw0521', 'sw0855', 'sw0604'] }  // Guards
-  ], []);
-
-  const { combinedMinifigs } = useMinifigLoader(allMinifigs, loaderConfigs);
-
   const topEliteSpecialists = useMemo(() => {
-    return combinedMinifigs
+    return allMinifigs
       .filter(m => 
         m.name.toLowerCase().includes('mandalorian') || 
         m.name.toLowerCase().includes('fett') ||
@@ -380,9 +350,9 @@ const EliteHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigure[], 
       )
       .sort((a, b) => (b.last_stock_min_price || 0) - (a.last_stock_min_price || 0))
       .slice(0, 10);
-  }, [combinedMinifigs]);
+  }, [allMinifigs]);
 
-  const getFigures = (ids: string[]) => combinedMinifigs.filter(m => ids.includes(m.item_no)).slice(0, 4);
+  const getFigures = (ids: string[]) => allMinifigs.filter(m => ids.includes(m.item_no)).slice(0, 4);
 
   const mandoFigures = getFigures(['sw1057', 'sw1135', 'sw1166', 'sw1164']);
   const cloneFigures = getFigures(['sw1148', 'sw1149', 'sw0377', 'sw0378']);

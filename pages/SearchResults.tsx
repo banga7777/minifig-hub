@@ -130,94 +130,70 @@ const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggl
     });
   };
 
-  const [searchResults, setSearchResults] = useState<Minifigure[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-
-  useEffect(() => {
+  const filteredResults = useMemo(() => {
     const q = queryFromUrl.trim().toLowerCase();
-    if (!q && setMatchedIds.size === 0) {
-      setSearchResults([]);
-      return;
-    }
+    if (!q && setMatchedIds.size === 0) return [];
+    
+    const terms = q.split(/\s+/).filter(t => t.length > 0);
+    const normalizedQ = q.replace(/\s+/g, '');
 
-    const controller = new AbortController();
-    const fetchResults = async () => {
-      setIsSearching(true);
-      try {
-        let query = supabase
-          .from('minifigures')
-          .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_stock_min_price, last_stock_avg_price, stock_updated_at');
-
-        if (q) {
-          query = query.or(`name_en.ilike.%${q}%,item_no.ilike.%${q}%,main_category.ilike.%${q}%,sub_category.ilike.%${q}%`);
-        }
-
-        if (setMatchedIds.size > 0) {
-          // If we have set matches, we might want to combine or prioritize them
-          // For simplicity, we'll just add them to the query if q is empty
-          if (!q) {
-            query = query.in('item_no', Array.from(setMatchedIds));
+    let resultWithScores = allMinifigs.map(m => {
+      const mName = m.decoded_name.toLowerCase();
+      const mID = m.item_no.toLowerCase();
+      const mTheme = m.theme_name.toLowerCase();
+      const mSub = (m.sub_category || '').toLowerCase();
+      
+      let score = 0;
+      const matchesSet = setMatchedIds.has(m.item_no);
+      
+      let matchesText = false;
+      if (terms.length > 0) {
+        matchesText = true;
+        for (let i = 0; i < terms.length; i++) {
+          const t = terms[i];
+          if (!mName.includes(t) && !mID.includes(t) && !mTheme.includes(t) && !mSub.includes(t)) {
+            matchesText = false;
+            break;
           }
         }
-
-        const { data, error } = await query.abortSignal(controller.signal);
-        if (error) throw error;
-
-        if (data) {
-          const enriched = data.map(m => ({
-            item_no: m.item_no,
-            name: m.name_en || 'Untitled',
-            decoded_name: decodeHTMLEntities(m.name_en || 'Untitled'),
-            theme_name: m.main_category || 'Other',
-            theme_slug: generateSlug(m.main_category || 'Other'),
-            sub_category: m.sub_category || '',
-            image_url: m.image_url || `https://img.bricklink.com/ItemImage/MN/0/${m.item_no.toUpperCase()}.png`,
-            category_id: m.category_id || 0,
-            year_released: m.year_released || 0,
-            owned: allMinifigs.find(am => am.item_no === m.item_no)?.owned || false,
-            last_stock_min_price: m.last_stock_min_price,
-            last_stock_avg_price: m.last_stock_avg_price,
-            stock_updated_at: m.stock_updated_at
-          }));
-          setSearchResults(enriched);
-        }
-      } catch (err: unknown) {
-        if (err instanceof Error && err.name !== 'AbortError') console.error("Search fetch failed:", err);
-      } finally {
-        setIsSearching(false);
       }
-    };
 
-    fetchResults();
-    return () => controller.abort();
-  }, [queryFromUrl, setMatchedIds, allMinifigs]);
+      if (!matchesText && !matchesSet) return { minifig: m, score: 0 };
+      
+      score += 100;
+      if (matchesSet) score += 5000;
+      if (mID === q || mID === normalizedQ) score += 10000;
+      if (mName === q || mName === normalizedQ) score += 3000;
+      else if (mName.includes(q) || mName.includes(normalizedQ)) score += 1000;
+      
+      for (let i = 0; i < terms.length; i++) {
+        if (mName.includes(terms[i])) score += 500;
+      }
+      
+      return { minifig: m, score };
+    }).filter(item => item.score > 0);
 
-  const filteredResults = useMemo(() => {
-    let result = [...searchResults];
-    
-    if (statusFilter !== 'ALL') {
-      result = result.filter(m => statusFilter === 'OWNED' ? m.owned : !m.owned);
-    }
+    let finalResult = resultWithScores.filter(item => {
+      if (statusFilter === 'ALL') return true;
+      if (statusFilter === 'OWNED') return item.minifig.owned;
+      if (statusFilter === 'MISSING') return !item.minifig.owned;
+      return true;
+    });
 
-    return result.sort((a, b) => {
+    return finalResult.sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'relevance') {
-        // Simple relevance: exact ID match first, then name match
-        const q = queryFromUrl.toLowerCase();
-        const aID = a.item_no.toLowerCase();
-        const bID = b.item_no.toLowerCase();
-        if (aID === q && bID !== q) return -1;
-        if (bID === q && aID !== q) return 1;
-        return a.decoded_name.localeCompare(b.decoded_name);
+        comparison = b.score - a.score;
+        return comparison;
       }
-      if (sortBy === 'name') comparison = a.decoded_name.localeCompare(b.decoded_name);
-      else if (sortBy === 'id') comparison = a.item_no.localeCompare(b.item_no);
-      else if (sortBy === 'year') comparison = a.year_released - b.year_released;
-      else if (sortBy === 'value') comparison = (a.last_stock_min_price || 0) - (b.last_stock_min_price || 0);
+      if (sortBy === 'name') comparison = a.minifig.decoded_name.localeCompare(b.minifig.decoded_name);
+      else if (sortBy === 'id') comparison = a.minifig.item_no.localeCompare(b.minifig.item_no);
+      else if (sortBy === 'year') comparison = a.minifig.year_released - b.minifig.year_released;
+      else if (sortBy === 'value') comparison = (a.minifig.last_stock_min_price || 0) - (b.minifig.last_stock_min_price || 0);
       
       return sortOrder === 'asc' ? comparison : -comparison;
-    });
-  }, [searchResults, sortBy, sortOrder, statusFilter, queryFromUrl]);
+    }).map(item => item.minifig);
+  }, [allMinifigs, queryFromUrl, sortBy, sortOrder, statusFilter, setMatchedIds]);
 
   const handleBulkAction = async (shouldOwn: boolean) => {
     const itemNos = Array.from(selectedItems);

@@ -3,9 +3,9 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import MinifigCard from '../components/MinifigCard';
 import CollectionDashboard from '../components/CollectionDashboard';
-import { Minifigure, UserProfile, PopularMinifig, CollectorRank, MarketMover, CharacterCollection } from '../types';
+import type { Minifigure, UserProfile, PopularMinifig, CollectorRank, MarketMover } from '../types';
 import { generateSlug } from '../utils/slug';
-import { MOCK_THEMES, MOCK_CHARACTERS } from '../services/mockData';
+import { MOCK_THEMES } from '../services/mockData';
 import { supabase } from '../services/supabaseClient';
 
 interface HomeProps {
@@ -122,74 +122,47 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const [searchPreview, setSearchPreview] = useState<{ minifig: Minifigure; score: number; isSetMatch: boolean }[]>([]);
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-
-  useEffect(() => {
+  const searchPreview = useMemo(() => {
     const q = searchValue.trim().toLowerCase();
-    if (q.length < 2) {
-      setSearchPreview([]);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      setIsPreviewLoading(true);
-      try {
-        // Search in Supabase instead of client-side
-        const { data, error } = await supabase
-          .from('minifigures')
-          .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_stock_min_price, last_stock_avg_price')
-          .or(`name_en.ilike.%${q}%,item_no.ilike.%${q}%,main_category.ilike.%${q}%,sub_category.ilike.%${q}%`)
-          .limit(6)
-          .abortSignal(controller.signal);
-
-        if (error) throw error;
-
-        if (data) {
-          const results = data.map(m => {
-            const isSetMatch = setMatchedIds.has(m.item_no);
-            let score = 100;
-            if (isSetMatch) score += 8000;
-            if (m.item_no.toLowerCase() === q) score += 10000;
-            if (m.name_en?.toLowerCase().includes(q)) score += 2000;
-
-            const fig: Minifigure = {
-              item_no: m.item_no,
-              name: m.name_en || 'Untitled',
-              decoded_name: decodeHTMLEntities(m.name_en || 'Untitled'),
-              theme_name: m.main_category || 'Other',
-              theme_slug: generateSlug(m.main_category || 'Other'),
-              sub_category: m.sub_category || '',
-              image_url: m.image_url || `https://img.bricklink.com/ItemImage/MN/0/${m.item_no.toUpperCase()}.png`,
-              category_id: m.category_id || 0,
-              year_released: m.year_released || 0,
-              owned: ownedMinifigs.some(om => om.item_no === m.item_no),
-              last_stock_min_price: m.last_stock_min_price,
-              last_stock_avg_price: m.last_stock_avg_price
-            };
-
-            return { minifig: fig, score, isSetMatch };
-          });
-          setSearchPreview(results.sort((a, b) => b.score - a.score));
+    if (q.length < 2 && setMatchedIds.size === 0) return [];
+    const terms = q.split(/\s+/).filter(t => t.length > 0);
+    const results = [];
+    const len = allMinifigs.length;
+    for (let i = 0; i < len; i++) {
+        const m = allMinifigs[i];
+        if (results.length >= 6) break; 
+        const mName = (m.name || '').toLowerCase();
+        const mTheme = (m.theme_name || '').toLowerCase();
+        const mSub = (m.sub_category || '').toLowerCase();
+        const itemNo = m.item_no.toLowerCase();
+        
+        const matchesSet = setMatchedIds.has(m.item_no);
+        let matchesText = false;
+        
+        if (terms.length > 0) {
+          matchesText = true;
+          for (let j = 0; j < terms.length; j++) {
+            const term = terms[j];
+            if (!mName.includes(term) && !itemNo.includes(term) && !mTheme.includes(term) && !mSub.includes(term)) {
+              matchesText = false;
+              break;
+            }
+          }
         }
-      } catch (err: unknown) {
-        if (err instanceof Error && err.name !== 'AbortError') console.error("Search preview failed:", err);
-      } finally {
-        setIsPreviewLoading(false);
-      }
-    }, 300);
 
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [searchValue, setMatchedIds, ownedMinifigs]);
+        if (matchesText || matchesSet) {
+             let score = 100;
+             if (matchesSet) score += 8000;
+             if (itemNo === q) score += 10000;
+             if (mName.includes(q)) score += 2000;
+             results.push({ minifig: m, score, isSetMatch: matchesSet });
+        }
+    }
+    return results.sort((a, b) => b.score - a.score);
+  }, [searchValue, allMinifigs, setMatchedIds]);
 
   const trendingCharacters = useMemo(() => {
-    if (!allMinifigs.length) return MOCK_CHARACTERS.map((c: CharacterCollection) => ({ ...c, count: 0 }));
-    
-    // Use the available data (recent + owned) to show some stats
+    if (!allMinifigs.length) return [];
     const charStats: Record<string, { count: number; bestMatch: Minifigure | null }> = {};
     const keys = KEY_CHARACTER_NAMES.map(k => ({ original: k, lower: k.toLowerCase() }));
     for (let i = 0; i < keys.length; i++) {
@@ -210,16 +183,10 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
             }
         }
     }
-    
     return KEY_CHARACTER_NAMES.map(name => {
       const data = charStats[name];
-      const mock = MOCK_CHARACTERS.find((mc: CharacterCollection) => mc.name === name);
-      return { 
-        name, 
-        image_url: data?.bestMatch?.image_url || mock?.image_url || '', 
-        count: data?.count || 0 
-      };
-    }).sort((a, b) => b.count - a.count);
+      return data?.bestMatch ? { name, image_url: data.bestMatch.image_url, count: data.count } : null;
+    }).filter(Boolean).sort((a, b) => b!.count - a!.count);
   }, [allMinifigs]);
 
   const homeThemes = useMemo(() => {
@@ -235,6 +202,7 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
         const mThemeLower = (m.theme_name || '').toLowerCase();
         const s = stats[mThemeLower];
         if (s) {
+            s.count++;
             if (m.owned) s.owned++;
             if (m.year_released > s.latestYear) {
                 s.latestYear = m.year_released;
@@ -244,12 +212,7 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
     }
     return MOCK_THEMES.slice(0, 6).map(theme => {
         const s = stats[theme.name.toLowerCase()];
-        return { 
-          ...theme, 
-          owned: s.owned, 
-          image_url: s.latestImg || theme.image_url, 
-          slug: generateSlug(theme.name) 
-        };
+        return { ...theme, count: s.count || theme.minifig_count, owned: s.owned, image_url: s.latestImg || theme.image_url, slug: generateSlug(theme.name) };
     });
   }, [allMinifigs]);
 
@@ -289,30 +252,21 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
                   <input type="text" value={searchValue} onChange={(e) => { setSearchValue(e.target.value); setShowPreview(true); }} onFocus={() => setShowPreview(true)} placeholder="Bricklink ID, set no, name" className="w-full h-11 pl-12 pr-4 rounded-xl bg-white/10 border border-white/15 text-white placeholder:text-slate-500 font-bold focus:ring-2 focus:ring-indigo-500 transition-all outline-none backdrop-blur-xl text-xs shadow-xl" />
                   <i className={`fas ${isSearchingSets ? 'fa-spinner animate-spin text-indigo-400' : 'fa-search text-slate-300'} absolute left-4 top-1/2 -translate-y-1/2 text-[10px]`}></i>
                 </form>
-                {showPreview && (searchPreview.length > 0 || isPreviewLoading) && (
+                {showPreview && searchPreview.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-2xl rounded-xl shadow-2xl border border-white/20 overflow-hidden z-[110] animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="p-1.5">
-                      {isPreviewLoading ? (
-                        <div className="py-8 flex flex-col items-center justify-center">
-                          <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2"></div>
-                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Searching...</p>
-                        </div>
-                      ) : (
-                        <>
-                          {searchPreview.map((result: { minifig: Minifigure; score: number; isSetMatch: boolean }) => {
-                            const fig = result.minifig;
-                            if (!fig) return null;
-                            return (
-                              <button key={fig.item_no} onClick={() => { navigate(`/minifigs/${fig.item_no}-${generateSlug(fig.name)}`); setShowPreview(false); }} className="w-full flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg transition-all group">
-                                <div className="w-8 h-8 bg-white border border-slate-100 rounded-md p-0.5 flex items-center justify-center flex-shrink-0 shadow-sm"><img src={fig.image_url} className="w-full h-full object-contain" alt="" onError={(e) => (e.target as HTMLImageElement).src = `https://img.bricklink.com/ItemImage/MN/0/${fig.item_no.toUpperCase()}.png`} /></div>
-                                <div className="flex-1 text-left truncate"><p className="text-[10px] font-black uppercase leading-tight truncate text-slate-900">{fig.decoded_name || 'Unknown'}</p><p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{fig.theme_name} • {fig.item_no}</p></div>
-                                {result.isSetMatch && <span className="bg-emerald-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase flex-shrink-0">SET</span>}
-                              </button>
-                            );
-                          })}
-                          <button onClick={() => navigate(`/search?q=${encodeURIComponent(searchValue)}`)} className="w-full py-3 text-[9px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50/50 hover:bg-indigo-600 hover:text-white rounded-lg mt-1 transition-all">View All Results</button>
-                        </>
-                      )}
+                      {searchPreview.map((result: { minifig: Minifigure; score: number; isSetMatch: boolean }) => {
+                        const fig = result.minifig;
+                        if (!fig) return null;
+                        return (
+                          <button key={fig.item_no} onClick={() => { navigate(`/minifigs/${fig.item_no}-${generateSlug(fig.name)}`); setShowPreview(false); }} className="w-full flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg transition-all group">
+                            <div className="w-8 h-8 bg-white border border-slate-100 rounded-md p-0.5 flex items-center justify-center flex-shrink-0 shadow-sm"><img src={fig.image_url} className="w-full h-full object-contain" alt="" onError={(e) => (e.target as HTMLImageElement).src = `https://img.bricklink.com/ItemImage/MN/0/${fig.item_no.toUpperCase()}.png`} /></div>
+                            <div className="flex-1 text-left truncate"><p className="text-[10px] font-black uppercase leading-tight truncate text-slate-900">{fig.decoded_name || 'Unknown'}</p><p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{fig.theme_name} • {fig.item_no}</p></div>
+                            {result.isSetMatch && <span className="bg-emerald-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase flex-shrink-0">SET</span>}
+                          </button>
+                        );
+                      })}
+                      <button onClick={() => navigate(`/search?q=${encodeURIComponent(searchValue)}`)} className="w-full py-3 text-[9px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50/50 hover:bg-indigo-600 hover:text-white rounded-lg mt-1 transition-all">View All Results</button>
                     </div>
                   </div>
                 )}
@@ -452,7 +406,7 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
                 <div className="flex items-center gap-2"><div className="w-1.5 h-4 bg-rose-500 rounded-full"></div><h2 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.1em] italic">Popular</h2></div>
               </div>
               <div className="flex gap-3 overflow-x-auto pb-4 hide-scrollbar px-1">
-                {trendingCharacters.map((c: any) => c && (
+                {trendingCharacters.map(c => c && (
                   <Link key={c.name} to={`/search?q=${encodeURIComponent(c.name)}`} className="block flex-shrink-0 w-20 text-center group">
                     <div className="w-20 h-20 rounded-full bg-white border-2 border-white p-1 shadow-lg ring-4 ring-slate-100 group-hover:ring-indigo-200 transition-all mb-3"><img src={c.image_url} className="w-full h-full object-contain rounded-full bg-slate-50" alt={c.name} onError={(e) => (e.target as HTMLImageElement).src = 'https://www.bricklink.com/img/no_image.png'} /></div>
                     <p className="text-[9px] font-black text-slate-900 uppercase truncate leading-tight">{c.name}</p>
@@ -473,7 +427,7 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
                         <img src={theme.image_url} className="w-full h-full object-contain group-hover:scale-110 transition-transform" alt={theme.name} onError={(e) => (e.target as HTMLImageElement).src = 'https://www.bricklink.com/img/no_image.png'} />
                     </div>
                     <h3 className="text-[9px] font-black text-slate-900 uppercase truncate leading-tight group-hover:text-indigo-600 px-1">{theme.name}</h3>
-                    <p className="text-[7px] font-bold text-slate-400 mt-1">{theme.owned || 0} / {theme.minifig_count} own</p>
+                    <p className="text-[7px] font-bold text-slate-400 mt-1">{theme.owned || 0} / {theme.count} own</p>
                   </Link>
                 ))}
               </div>

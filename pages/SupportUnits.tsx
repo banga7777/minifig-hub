@@ -5,7 +5,6 @@ import { Minifigure } from '../types';
 import MinifigCard from '../components/MinifigCard';
 import SEO from '../components/SEO';
 import { PILOT_DATA, TECH_OFFICER_DATA, DROID_DATA, SupportSection } from '../src/constants/supportData';
-import { useMinifigLoader, LoaderConfig } from '../hooks/useMinifigLoader';
 
 interface SupportUnitsProps {
   allMinifigs: Minifigure[];
@@ -30,17 +29,10 @@ const SupportSubArchive = ({ allMinifigs, onToggleOwned, faction }: { allMinifig
     return null;
   }, [data, subId]);
 
-  const loaderConfigs = useMemo(() => {
-    if (!subSection) return [];
-    return subSection.sub.items.map(item => ({ ids: item.ids }));
-  }, [subSection]);
-
-  const { combinedMinifigs, isLoading } = useMinifigLoader(allMinifigs, loaderConfigs);
-
   if (!subSection) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">Sub-archive not found</div>;
 
   const getFigs = (ids: string[]) => 
-    combinedMinifigs
+    allMinifigs
       .filter(m => ids.includes(m.item_no))
       .sort((a, b) => a.item_no.localeCompare(b.item_no));
 
@@ -127,22 +119,8 @@ const ArchiveView = ({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
 
-  const loaderConfigs = useMemo(() => {
-    const configs: LoaderConfig[] = [];
-    data.forEach(section => {
-      section.subsections.forEach(sub => {
-        sub.items.forEach(item => {
-          configs.push({ ids: item.ids });
-        });
-      });
-    });
-    return configs;
-  }, [data]);
-
-  const { combinedMinifigs } = useMinifigLoader(allMinifigs, loaderConfigs);
-
   const getFigs = (ids: string[]) => 
-    combinedMinifigs
+    allMinifigs
       .filter(m => ids.includes(m.item_no))
       .sort((a, b) => a.item_no.localeCompare(b.item_no));
 
@@ -361,16 +339,8 @@ const SupportUnits: React.FC<SupportUnitsProps> = ({ allMinifigs, onToggleOwned 
 const SupportHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigure[], onToggleOwned: (id: string) => void }) => {
   const navigate = useNavigate();
 
-  const loaderConfigs = useMemo(() => [
-    { ids: ['sw0019', 'sw0032', 'sw0035', 'sw0118'] }, // Pilots
-    { ids: ['sw0114', 'sw0046', 'sw0036', 'sw0016'] }, // Tech
-    { ids: ['sw0028', 'sw0010', 'sw0430', 'sw0373'] }  // Droids
-  ], []);
-
-  const { combinedMinifigs } = useMinifigLoader(allMinifigs, loaderConfigs);
-
   const topSupportUnits = useMemo(() => {
-    return combinedMinifigs
+    return allMinifigs
       .filter(m => 
         m.name.toLowerCase().includes('pilot') || 
         m.name.toLowerCase().includes('officer') ||
@@ -380,9 +350,9 @@ const SupportHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigure[]
       )
       .sort((a, b) => (b.last_stock_min_price || 0) - (a.last_stock_min_price || 0))
       .slice(0, 10);
-  }, [combinedMinifigs]);
+  }, [allMinifigs]);
 
-  const getFigures = (ids: string[]) => combinedMinifigs.filter(m => ids.includes(m.item_no)).slice(0, 4);
+  const getFigures = (ids: string[]) => allMinifigs.filter(m => ids.includes(m.item_no)).slice(0, 4);
 
   const pilotFigures = getFigures(['sw0019', 'sw0032', 'sw0035', 'sw0118']);
   const techFigures = getFigures(['sw0114', 'sw0046', 'sw0036', 'sw0016']);

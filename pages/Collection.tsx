@@ -15,7 +15,7 @@ export interface CollectionProps {
   onShowSettings: (isOpen: boolean) => void; 
   onShowDeleteModal: (isOpen: boolean) => void;
   dataLoading: boolean;
-  fetchFullMinifigList: () => Promise<void>;
+  fetchFullMinifigList?: () => void;
 }
 
 type SortOption = 'id' | 'newest' | 'name' | 'theme' | 'value';
@@ -33,13 +33,9 @@ const formatCurrency = (val: number) => {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
 };
 
-const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal, dataLoading, fetchFullMinifigList }) => {
+const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onBulkToggleOwned, user, onShowSettings, onShowDeleteModal, dataLoading }) => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState('');
-  
-  useEffect(() => {
-    fetchFullMinifigList();
-  }, []);
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     const saved = sessionStorage.getItem('collection_sortby');
     return (saved as SortOption) || 'id';
