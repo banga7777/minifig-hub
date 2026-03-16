@@ -435,6 +435,17 @@ const decodeHTMLEntities = (text: string) => {
   return textArea.value;
 };
 
+const isAbortError = (err: any) => {
+  if (!err) return false;
+  return (
+    err.name === 'AbortError' ||
+    err.message?.includes('AbortError') ||
+    err.message?.includes('signal is aborted') ||
+    err.code === 20 ||
+    err.code === '20'
+  );
+};
+
 const App: React.FC = () => {
   const [allMinifigs, setAllMinifigs] = useState<Minifigure[]>([]);
   const [topMinifigs, setTopMinifigs] = useState<PopularMinifig[]>([]);
@@ -546,7 +557,7 @@ const App: React.FC = () => {
 
         setTopMinifigs(topList);
       } catch (err: unknown) {
-        if (err instanceof Error && err.name !== 'AbortError') console.error("Trends View Fetch Error:", err);
+        if (!isAbortError(err)) console.error("Trends View Fetch Error:", err);
       }
     };
     
@@ -566,8 +577,10 @@ const App: React.FC = () => {
           setCollectorRanking(rankedList);
         }
       } catch (err: unknown) {
-        if (err instanceof Error && err.name !== 'AbortError') console.error("Collector ranking fetch error:", err);
-        setCollectorRanking([]);
+        if (!isAbortError(err)) {
+          console.error("Collector ranking fetch error:", err);
+          setCollectorRanking([]);
+        }
       }
     };
 
@@ -632,7 +645,7 @@ const App: React.FC = () => {
           })));
         }
       } catch (err: unknown) {
-        if (err instanceof Error && err.name !== 'AbortError') console.error("Market movers fetch error:", err);
+        if (!isAbortError(err)) console.error("Market movers fetch error:", err);
       }
     };
 
@@ -681,7 +694,7 @@ const App: React.FC = () => {
               success = true;
             } catch (e: unknown) {
               // Check if it's an abort error, if so, don't retry and rethrow
-              if (e instanceof Error && (e.name === 'AbortError' || e.message?.includes('AbortError'))) throw e;
+              if (isAbortError(e) || controller.signal.aborted) throw e;
               
               console.warn(`Fetch failed (page ${page}), retrying... (${retries} left)`, e);
               retries--;
@@ -767,8 +780,7 @@ const App: React.FC = () => {
         })));
 
       } catch (err: unknown) {
-        const isAbortError = err instanceof Error && (err.name === 'AbortError' || err.message?.includes('AbortError') || ('code' in err && err.code === '20') || err.message?.includes('signal is aborted'));
-        if (!isAbortError) {
+        if (!isAbortError(err) && !controller.signal.aborted) {
           setHasError(true);
           console.error("Sync Error:", err);
         }

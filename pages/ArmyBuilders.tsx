@@ -5,6 +5,7 @@ import { Minifigure } from '../types';
 import MinifigCard from '../components/MinifigCard';
 import SEO from '../components/SEO';
 import { CLONE_ARMY_DATA, STORMTROOPER_ARMY_DATA, DROID_ARMY_DATA, ArmySection } from '../src/constants/armyData';
+import { useMinifigLoader, LoaderConfig } from '../hooks/useMinifigLoader';
 
 interface ArmyBuildersProps {
   allMinifigs: Minifigure[];
@@ -29,10 +30,17 @@ const ArmySubArchive = ({ allMinifigs, onToggleOwned, faction }: { allMinifigs: 
     return null;
   }, [data, subId]);
 
+  const loaderConfigs = useMemo(() => {
+    if (!subSection) return [];
+    return subSection.sub.items.map(item => ({ ids: item.ids }));
+  }, [subSection]);
+
+  const { combinedMinifigs, isLoading } = useMinifigLoader(allMinifigs, loaderConfigs);
+
   if (!subSection) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">Sub-archive not found</div>;
 
   const getFigs = (ids: string[]) => 
-    allMinifigs
+    combinedMinifigs
       .filter(m => ids.includes(m.item_no))
       .sort((a, b) => a.item_no.localeCompare(b.item_no));
 
@@ -116,8 +124,22 @@ const ArchiveView = ({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
 
+  const loaderConfigs = useMemo(() => {
+    const configs: LoaderConfig[] = [];
+    data.forEach(section => {
+      section.subsections.forEach(sub => {
+        sub.items.forEach(item => {
+          configs.push({ ids: item.ids });
+        });
+      });
+    });
+    return configs;
+  }, [data]);
+
+  const { combinedMinifigs } = useMinifigLoader(allMinifigs, loaderConfigs);
+
   const getFigs = (ids: string[]) => 
-    allMinifigs
+    combinedMinifigs
       .filter(m => ids.includes(m.item_no))
       .sort((a, b) => a.item_no.localeCompare(b.item_no));
 
@@ -337,8 +359,16 @@ const ArmyBuilders: React.FC<ArmyBuildersProps> = ({ allMinifigs, onToggleOwned 
 const ArmyBuilderHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigure[], onToggleOwned: (id: string) => void }) => {
   const navigate = useNavigate();
 
+  const loaderConfigs = useMemo(() => [
+    { ids: ['sw1189', 'sw1094', 'sw0442', 'sw1235'] }, // Clones
+    { ids: ['sw0585', 'sw0997', 'sw1135', 'sw0005'] }, // Stormtroopers
+    { ids: ['sw0001', 'sw0001c', 'sw0467', 'sw0359'] }  // Droids
+  ], []);
+
+  const { combinedMinifigs } = useMinifigLoader(allMinifigs, loaderConfigs);
+
   const topArmyBuilders = useMemo(() => {
-    return allMinifigs
+    return combinedMinifigs
       .filter(m => 
         m.name.toLowerCase().includes('trooper') || 
         m.name.toLowerCase().includes('droid') ||
@@ -346,9 +376,9 @@ const ArmyBuilderHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigu
       )
       .sort((a, b) => (b.last_stock_min_price || 0) - (a.last_stock_min_price || 0))
       .slice(0, 10);
-  }, [allMinifigs]);
+  }, [combinedMinifigs]);
 
-  const getFigures = (ids: string[]) => allMinifigs.filter(m => ids.includes(m.item_no)).slice(0, 4);
+  const getFigures = (ids: string[]) => combinedMinifigs.filter(m => ids.includes(m.item_no)).slice(0, 4);
 
   const cloneFigures = getFigures(['sw1189', 'sw1094', 'sw0442', 'sw1235']);
   const stormFigures = getFigures(['sw0585', 'sw0997', 'sw1135', 'sw0005']);

@@ -5,6 +5,7 @@ import { Minifigure } from '../types';
 import MinifigCard from '../components/MinifigCard';
 import SEO from '../components/SEO';
 import { SKYWALKER_SAGA_DATA, JEDI_COUNCIL_DATA, SITH_DARK_SIDE_DATA, CharacterSection } from '../src/constants/characterData';
+import { useMinifigLoader, LoaderConfig } from '../hooks/useMinifigLoader';
 
 interface CharacterCenterpiecesProps {
   allMinifigs: Minifigure[];
@@ -29,10 +30,21 @@ const CharacterSubArchive = ({ allMinifigs, onToggleOwned, faction }: { allMinif
     return null;
   }, [data, subId]);
 
+  const loaderConfigs = useMemo(() => {
+    if (!subSection) return [];
+    return subSection.sub.items.map(item => ({ 
+      ids: item.ids,
+      nameFilter: item.nameFilter,
+      excludeFilter: item.excludeFilter
+    }));
+  }, [subSection]);
+
+  const { combinedMinifigs, isLoading } = useMinifigLoader(allMinifigs, loaderConfigs);
+
   if (!subSection) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">Sub-archive not found</div>;
 
   const getFigs = (item: { ids?: string[], nameFilter?: string[], excludeFilter?: string[] }) => {
-    let figs = allMinifigs;
+    let figs = combinedMinifigs;
     if (item.nameFilter && item.nameFilter.length > 0) {
       figs = figs.filter(m => item.nameFilter!.some(n => m.name.toLowerCase().includes(n.toLowerCase())));
       if (item.excludeFilter && item.excludeFilter.length > 0) {
@@ -136,8 +148,26 @@ const ArchiveView = ({
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
 
+  const loaderConfigs = useMemo(() => {
+    const configs: LoaderConfig[] = [];
+    data.forEach(section => {
+      section.subsections.forEach(sub => {
+        sub.items.forEach(item => {
+          configs.push({ 
+            ids: item.ids,
+            nameFilter: item.nameFilter,
+            excludeFilter: item.excludeFilter
+          });
+        });
+      });
+    });
+    return configs;
+  }, [data]);
+
+  const { combinedMinifigs } = useMinifigLoader(allMinifigs, loaderConfigs);
+
   const getFigs = (item: { ids?: string[], nameFilter?: string[], excludeFilter?: string[] }) => {
-    let figs = allMinifigs;
+    let figs = combinedMinifigs;
     if (item.nameFilter && item.nameFilter.length > 0) {
       figs = figs.filter(m => item.nameFilter!.some(n => m.name.toLowerCase().includes(n.toLowerCase())));
       if (item.excludeFilter && item.excludeFilter.length > 0) {
@@ -363,8 +393,19 @@ const CharacterCenterpieces: React.FC<CharacterCenterpiecesProps> = ({ allMinifi
 const CharacterHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigure[], onToggleOwned: (id: string) => void }) => {
   const navigate = useNavigate();
 
+  const loaderConfigs = useMemo(() => [
+    { nameFilter: ['Luke Skywalker'] },
+    { nameFilter: ['Darth Vader'] },
+    { nameFilter: ['Yoda'] },
+    { nameFilter: ['Obi-Wan Kenobi'] },
+    { nameFilter: ['Palpatine'] },
+    { nameFilter: ['Darth Maul'] }
+  ], []);
+
+  const { combinedMinifigs } = useMinifigLoader(allMinifigs, loaderConfigs);
+
   const topCharacterCenterpieces = useMemo(() => {
-    return allMinifigs
+    return combinedMinifigs
       .filter(m => 
         m.name.toLowerCase().includes('skywalker') || 
         m.name.toLowerCase().includes('jedi') ||
@@ -375,9 +416,9 @@ const CharacterHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigure
       )
       .sort((a, b) => (b.last_stock_min_price || 0) - (a.last_stock_min_price || 0))
       .slice(0, 10);
-  }, [allMinifigs]);
+  }, [combinedMinifigs]);
 
-  const getFigures = (ids: string[]) => allMinifigs.filter(m => ids.includes(m.item_no)).slice(0, 4);
+  const getFigures = (ids: string[]) => combinedMinifigs.filter(m => ids.includes(m.item_no)).slice(0, 4);
 
   const skywalkerFigures = getFigures(['sw0004', 'sw0019', 'sw0021', 'sw0277']);
   const jediFigures = getFigures(['sw0023', 'sw0446', 'sw0479', 'sw0198']);

@@ -58,32 +58,10 @@ export interface UserProfile {
   email?: string;
 }
 
-export interface StatsProps {
-  ownedMinifigs: Minifigure[];
-  allMinifigs: Minifigure[];
-  user: UserProfile | null;
-}
-
-export interface ProfileProps {
-  user: UserProfile | null;
-  onLogout: () => void;
-  allMinifigs: Minifigure[];
-}
-
 export interface CollectorRank {
   rank: number;
   user_id: string;
   username: string;
   owned_count: number;
   avatar_url?: string;
-}
-
-// MarketMover interface for Home dashboard
-export interface MarketMover {
-  item_no: string;
-  name: string;
-  image_url?: string;
-  current_price: number;
-  change_percent: number;
-  total_quantity: number; // 거래량 필드 추가
 }
