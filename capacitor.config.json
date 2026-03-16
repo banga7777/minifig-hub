@@ -1,0 +1,47 @@
+{
+  "appId": "com.minifighub.pro",
+  "appName": "Minifig Hub",
+  "webDir": "www",
+  "bundledWebRuntime": true,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true,
+    "hostname": "app.minifighub.com"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000,
+      "launchAutoHide": true,
+      "backgroundColor": "#4f46e5",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": true
+    },
+    "Keyboard": {
+      "resize": "body",
+      "style": "DARK"
+    },
+    "Assets": {
+      "icon": {
+        "path": "assets/icon.svg"
+      },
+      "splash": {
+        "path": "assets/splash.svg"
+      }
+    }
+  },
+  "android": {
+    "iconBackgroundColor": "#4f46e5",
+    "androidxWebKitVersion": "1.10.0",
+    "buildOptions": {
+      "releaseType": "APK"
+    },
+    "backgroundColor": "#4f46e5",
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true,
+    "loggingBehavior": "production"
+  }
+}
