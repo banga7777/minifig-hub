@@ -27,7 +27,7 @@ import Footer from './src/components/Footer';
 import ProgressBar from './components/ProgressBar';
 
 import { supabase } from './services/supabaseClient';
-import { Minifigure, UserProfile, PopularMinifig, CollectorRank, MarketMover } from './types';
+import { Minifigure, UserProfile, PopularMinifig, CollectorRank } from './types';
 import { AdMobService } from './services/adMobService';
 import AdBanner from './components/AdBanner';
 import { Capacitor } from '@capacitor/core';
@@ -205,8 +205,6 @@ interface MainContentProps {
   allMinifigs: Minifigure[];
   topMinifigs: PopularMinifig[];
   collectorRanking: CollectorRank[];
-  marketMovers: MarketMover[];
-  volumeMovers: MarketMover[];
   dataLoading: boolean;
   authLoading: boolean;
   hasError: boolean;
@@ -257,7 +255,7 @@ const PageWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const MainContent: React.FC<MainContentProps> = ({ 
-  allMinifigs, topMinifigs, collectorRanking, marketMovers, volumeMovers, dataLoading, authLoading, hasError, user, onToggleOwned, onBulkToggleOwned, onLogout, onRetryFetch, hasActiveModal, updateModalState, showAdBanner, scrollRef 
+  allMinifigs, topMinifigs, collectorRanking, dataLoading, authLoading, hasError, user, onToggleOwned, onBulkToggleOwned, onLogout, onRetryFetch, hasActiveModal, updateModalState, showAdBanner, scrollRef 
 }) => {
   const location = useLocation();
   const isAuthPage = location.pathname === '/auth';
@@ -274,7 +272,7 @@ const MainContent: React.FC<MainContentProps> = ({
           </div>
         }>
           <Routes>
-            <Route path="/" element={<PageWrapper><Home onToggleOwned={onToggleOwned} ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} topMinifigs={topMinifigs} marketMovers={marketMovers} volumeMovers={volumeMovers} collectorRanking={collectorRanking} onRetryFetch={onRetryFetch} /></PageWrapper>} />
+            <Route path="/" element={<PageWrapper><Home onToggleOwned={onToggleOwned} ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} topMinifigs={topMinifigs} collectorRanking={collectorRanking} onRetryFetch={onRetryFetch} /></PageWrapper>} />
             <Route path="/auth" element={<PageWrapper>{user ? <Navigate to="/collection" /> : <Auth onShowLegalModal={(isOpen: boolean) => updateModalState('authLegal', isOpen)} />}</PageWrapper>} />
             <Route path="/collection/*" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Collection allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} user={user} onShowSettings={(isOpen: boolean) => updateModalState('collectionSettings', isOpen)} onShowDeleteModal={(isOpen: boolean) => updateModalState('collectionDelete', isOpen)} dataLoading={dataLoading} /></ProtectedRoute></PageWrapper>} />
             <Route path="/stats" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Stats ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} /></ProtectedRoute></PageWrapper>} />
@@ -440,8 +438,6 @@ const App: React.FC = () => {
   const [allMinifigs, setAllMinifigs] = useState<Minifigure[]>([]);
   const [topMinifigs, setTopMinifigs] = useState<PopularMinifig[]>([]);
   const [collectorRanking, setCollectorRanking] = useState<CollectorRank[]>([]);
-  const [marketMovers, setMarketMovers] = useState<MarketMover[]>([]);
-  const [volumeMovers, setVolumeMovers] = useState<MarketMover[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -572,74 +568,8 @@ const App: React.FC = () => {
       }
     };
 
-    const fetchMarketMovers = async () => {
-      try {
-        const { data: gainerData, error: gainerError } = await supabase
-          .from('market_movers_view')
-          .select('item_no, name, image_url, current_price, change_percent, total_quantity')
-          .not('change_percent', 'is', null)
-          .order('change_percent', { ascending: false })
-          .limit(20)
-          .abortSignal(controller.signal);
-        
-        if (gainerError) {
-          if (!isAbortError(gainerError)) console.error("Gainer Fetch Error:", gainerError);
-        } else if (gainerData && gainerData.length > 0) {
-          setMarketMovers(gainerData.map(m => ({
-            item_no: m.item_no,
-            name: m.name || 'Unknown',
-            image_url: m.image_url,
-            current_price: parseFloat(m.current_price || 0),
-            change_percent: parseFloat(m.change_percent || 0),
-            total_quantity: parseInt(m.total_quantity || 0)
-          })));
-        } else {
-          const { data: fallbackGainer } = await supabase
-            .from('market_movers_view')
-            .select('item_no, name, image_url, current_price, change_percent, total_quantity')
-            .order('current_price', { ascending: false })
-            .limit(20)
-            .abortSignal(controller.signal);
-          
-          if (fallbackGainer) {
-            setMarketMovers(fallbackGainer.map(m => ({
-              item_no: m.item_no,
-              name: m.name || 'Unknown',
-              image_url: m.image_url,
-              current_price: parseFloat(m.current_price || 0),
-              change_percent: parseFloat(m.change_percent || 0),
-              total_quantity: parseInt(m.total_quantity || 0)
-            })));
-          }
-        }
-
-        const { data: volumeData, error: volumeError } = await supabase
-          .from('market_movers_view')
-          .select('item_no, name, image_url, current_price, change_percent, total_quantity')
-          .order('total_quantity', { ascending: false })
-          .limit(20)
-          .abortSignal(controller.signal);
-        
-        if (volumeError) {
-          if (!isAbortError(volumeError)) console.error("Volume Fetch Error:", volumeError);
-        } else if (volumeData && volumeData.length > 0) {
-          setVolumeMovers(volumeData.map(m => ({
-            item_no: m.item_no,
-            name: m.name || 'Unknown',
-            image_url: m.image_url,
-            current_price: parseFloat(m.current_price || 0),
-            change_percent: parseFloat(m.change_percent || 0),
-            total_quantity: parseInt(m.total_quantity || 0)
-          })));
-        }
-      } catch (err: unknown) {
-        if (!isAbortError(err)) console.error("Market movers fetch error:", err);
-      }
-    };
-
     fetchTrends();
     fetchRanking();
-    fetchMarketMovers();
 
     return () => controller.abort();
   }, [fetchTrigger]);
@@ -655,79 +585,27 @@ const App: React.FC = () => {
         // Fetch minifigures in chunks to avoid payload limits
         let allRawMinifigs: RawMinifig[] = [];
         let page = 0;
-        const pageSize = 1000; // Reduced to 1000 for better stability
+        const pageSize = 500; // Reduced from 1000 for better stability
         let hasMore = true;
 
         while (hasMore) {
-          let retries = 3;
-          let success = false;
-          
-          while (retries > 0 && !success) {
-            try {
-              const { data, error } = await supabase
-                .from('minifigures')
-                .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_stock_min_price, last_stock_avg_price, stock_updated_at')
-                .range(page * pageSize, (page + 1) * pageSize - 1)
-                .abortSignal(controller.signal);
-              
-              if (error) throw error;
-              
-              if (data && data.length > 0) {
-                allRawMinifigs = [...allRawMinifigs, ...data];
-                if (data.length < pageSize) hasMore = false;
-                else page++;
-              } else {
-                hasMore = false;
-              }
-              success = true;
-            } catch (e: unknown) {
-              // Check if it's an abort error, if so, don't retry and rethrow
-              if (isAbortError(e)) throw e;
-              
-              console.warn(`Fetch failed (page ${page}), retrying... (${retries} left)`, e);
-              retries--;
-              if (retries === 0) throw e;
-              await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries))); // Exponential backoff: 1s, 2s, 3s
-            }
-          }
-        }
-        
-        // Fetch market movers in chunks
-        let allMarketMovers: RawMinifig[] = [];
-        let mmPage = 0;
-        const mmPageSize = 1000; // Reduced to 1000
-        let mmHasMore = true;
-
-        while (mmHasMore) {
           const { data, error } = await supabase
-            .from('market_movers_view')
-            .select('item_no, change_percent')
-            .range(mmPage * mmPageSize, (mmPage + 1) * mmPageSize - 1)
+            .from('minifigures')
+            .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_stock_min_price, last_stock_avg_price, stock_updated_at')
+            .range(page * pageSize, (page + 1) * pageSize - 1)
             .abortSignal(controller.signal);
           
-          if (error) {
-            if (!isAbortError(error)) console.warn('Error fetching market movers chunk:', error);
-            break; // Continue with partial data
-          }
+          if (error) throw error;
           
           if (data && data.length > 0) {
-            allMarketMovers = [...allMarketMovers, ...data];
-            if (data.length < mmPageSize) mmHasMore = false;
-            else mmPage++;
+            allRawMinifigs = [...allRawMinifigs, ...data];
+            if (data.length < pageSize) hasMore = false;
+            else page++;
           } else {
-            mmHasMore = false;
+            hasMore = false;
           }
         }
         
-        const changePercentMap = new Map<string, number>();
-        if (allMarketMovers.length > 0) {
-          allMarketMovers.forEach(m => {
-            if (m.item_no && m.change_percent !== undefined) {
-              changePercentMap.set(m.item_no, typeof m.change_percent === 'string' ? parseFloat(m.change_percent) : m.change_percent);
-            }
-          });
-        }
-
         let ownedIds = new Set<string>();
         if (user) {
           const { data: owned, error: ownedError } = await supabase
@@ -755,7 +633,6 @@ const App: React.FC = () => {
             owned: ownedIds.has(itemNo),
             last_stock_min_price: m.last_stock_min_price,
             last_stock_avg_price: m.last_stock_avg_price,
-            change_percent: changePercentMap.get(itemNo),
             stock_updated_at: m.stock_updated_at
           };
         });
@@ -763,8 +640,7 @@ const App: React.FC = () => {
         setAllMinifigs(enriched);
         setTopMinifigs(prev => prev.map(m => ({ 
           ...m, 
-          owned: ownedIds.has(m.item_no),
-          change_percent: changePercentMap.get(m.item_no)
+          owned: ownedIds.has(m.item_no)
         })));
 
       } catch (err: unknown) {
@@ -821,8 +697,6 @@ const App: React.FC = () => {
         allMinifigs={allMinifigs} 
         topMinifigs={topMinifigs} 
         collectorRanking={collectorRanking}
-        marketMovers={marketMovers}
-        volumeMovers={volumeMovers}
         dataLoading={dataLoading} 
         authLoading={authLoading} 
         hasError={hasError} 
