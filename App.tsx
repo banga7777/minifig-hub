@@ -311,6 +311,15 @@ const MainContent: React.FC<MainContentProps> = ({
           </button>
         </div>
       )}
+      {dataLoading && !hasError && allMinifigs.length === 0 && !isAuthPage && (
+        <div className="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center">
+          <div className="relative w-16 h-16 mb-6">
+            <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <p className="text-white font-black uppercase tracking-[0.3em] text-[11px] italic animate-pulse">Syncing Library...</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -574,23 +583,10 @@ const App: React.FC = () => {
       setHasError(false);
       try {
         // Fetch minifigures in chunks to avoid payload limits
+        let allRawMinifigs: RawMinifig[] = [];
         let page = 0;
-        const pageSize = 500;
+        const pageSize = 500; // Reduced from 1000 for better stability
         let hasMore = true;
-
-        // Clear existing state before fetching new data
-        setAllMinifigs([]);
-
-        // Fetch owned minifigs first to correctly set 'owned' status for the first chunk
-        let ownedIds = new Set<string>();
-        if (user) {
-          const { data: owned, error: ownedError } = await supabase
-            .from('user_owned_minifigs')
-            .select('minifig_id')
-            .eq('user_id', user.id)
-            .abortSignal(controller.signal);
-          if (!ownedError && owned) owned.forEach(o => ownedIds.add(o.minifig_id));
-        }
 
         while (hasMore) {
           const { data, error } = await supabase
@@ -602,35 +598,7 @@ const App: React.FC = () => {
           if (error) throw error;
           
           if (data && data.length > 0) {
-            const enrichedChunk: Minifigure[] = data.map((m: RawMinifig) => {
-              const itemNo = m.item_no || 'unknown';
-              const themeName = m.main_category || 'Other';
-              const name = m.name_en || 'Untitled';
-              return {
-                item_no: itemNo, 
-                name: name, 
-                decoded_name: decodeHTMLEntities(name),
-                theme_name: themeName, 
-                theme_slug: generateSlug(themeName),
-                sub_category: m.sub_category || '', 
-                image_url: m.image_url || `https://img.bricklink.com/ItemImage/MN/0/${itemNo.toUpperCase()}.png`, 
-                category_id: m.category_id || 0, 
-                year_released: m.year_released || 0, 
-                owned: ownedIds.has(itemNo),
-                last_stock_min_price: m.last_stock_min_price,
-                last_stock_avg_price: m.last_stock_avg_price,
-                stock_updated_at: m.stock_updated_at
-              };
-            });
-
-            // Update state incrementally
-            setAllMinifigs(prev => [...prev, ...enrichedChunk]);
-            
-            // If it's the first page, stop loading to show content immediately
-            if (page === 0) {
-              setDataLoading(false);
-            }
-
+            allRawMinifigs = [...allRawMinifigs, ...data];
             if (data.length < pageSize) hasMore = false;
             else page++;
           } else {
@@ -638,6 +606,38 @@ const App: React.FC = () => {
           }
         }
         
+        let ownedIds = new Set<string>();
+        if (user) {
+          const { data: owned, error: ownedError } = await supabase
+            .from('user_owned_minifigs')
+            .select('minifig_id')
+            .eq('user_id', user.id)
+            .abortSignal(controller.signal);
+          if (!ownedError && owned) owned.forEach(o => ownedIds.add(o.minifig_id));
+        }
+
+        const enriched: Minifigure[] = allRawMinifigs.map((m: RawMinifig) => {
+          const itemNo = m.item_no || 'unknown';
+          const themeName = m.main_category || 'Other';
+          const name = m.name_en || 'Untitled';
+          return {
+            item_no: itemNo, 
+            name: name, 
+            decoded_name: decodeHTMLEntities(name),
+            theme_name: themeName, 
+            theme_slug: generateSlug(themeName),
+            sub_category: m.sub_category || '', 
+            image_url: m.image_url || `https://img.bricklink.com/ItemImage/MN/0/${itemNo.toUpperCase()}.png`, 
+            category_id: m.category_id || 0, 
+            year_released: m.year_released || 0, 
+            owned: ownedIds.has(itemNo),
+            last_stock_min_price: m.last_stock_min_price,
+            last_stock_avg_price: m.last_stock_avg_price,
+            stock_updated_at: m.stock_updated_at
+          };
+        });
+        
+        setAllMinifigs(enriched);
         setTopMinifigs(prev => prev.map(m => ({ 
           ...m, 
           owned: ownedIds.has(m.item_no)
