@@ -1,0 +1,19 @@
+<svg width="2732" height="2732" viewBox="0 0 2732 2732" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="2732" height="2732" fill="#4f46e5"/>
+    <g transform="translate(1366, 1200) scale(4)">
+      <g transform="translate(-150, -137.5)">
+        <g fill="white">
+          <path d="M150 50 L200 75 L150 100 L100 75 Z"/>
+          <path d="M100 75 L150 100 L150 150 L100 125 Z"/>
+          <path d="M200 75 L150 100 L150 150 L200 125 Z"/>
+          <path d="M100 125 L150 150 L100 175 L50 150 Z"/>
+          <path d="M50 150 L100 175 L100 225 L50 200 Z"/>
+          <path d="M200 125 L150 150 L200 175 L250 150 Z"/>
+          <path d="M250 150 L200 175 L200 225 L250 200 Z"/>
+        </g>
+      </g>
+    </g>
+    <text x="50%" y="65%" dominant-baseline="middle" text-anchor="middle" font-family="Outfit, sans-serif" font-size="200" font-weight="900" fill="white" style="text-transform: uppercase; font-style: italic; letter-spacing: -0.05em;">
+        Minifig<tspan fill="#a5b4fc">Hub</tspan>
+    </text>
+</svg>
