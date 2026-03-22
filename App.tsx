@@ -272,7 +272,7 @@ const MainContent: React.FC<MainContentProps> = ({
           </div>
         }>
           <Routes>
-            <Route path="/" element={<PageWrapper><Home onToggleOwned={onToggleOwned} ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} topMinifigs={topMinifigs} collectorRanking={collectorRanking} onRetryFetch={onRetryFetch} /></PageWrapper>} />
+            <Route path="/" element={<PageWrapper><Home onToggleOwned={onToggleOwned} ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} topMinifigs={topMinifigs} collectorRanking={collectorRanking} onRetryFetch={onRetryFetch} dataLoading={dataLoading} /></PageWrapper>} />
             <Route path="/auth" element={<PageWrapper>{user ? <Navigate to="/collection" /> : <Auth onShowLegalModal={(isOpen: boolean) => updateModalState('authLegal', isOpen)} />}</PageWrapper>} />
             <Route path="/collection/*" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Collection allMinifigs={allMinifigs} onToggleOwned={onToggleOwned} onBulkToggleOwned={onBulkToggleOwned} user={user} onShowSettings={(isOpen: boolean) => updateModalState('collectionSettings', isOpen)} onShowDeleteModal={(isOpen: boolean) => updateModalState('collectionDelete', isOpen)} dataLoading={dataLoading} /></ProtectedRoute></PageWrapper>} />
             <Route path="/stats" element={<PageWrapper><ProtectedRoute user={user} loading={authLoading}><Stats ownedMinifigs={ownedMinifigs} allMinifigs={allMinifigs} user={user} /></ProtectedRoute></PageWrapper>} />
@@ -309,15 +309,6 @@ const MainContent: React.FC<MainContentProps> = ({
           <button onClick={onRetryFetch} className="bg-white text-rose-600 px-4 py-2 rounded-lg font-black uppercase text-xs tracking-widest hover:bg-rose-50 transition-colors">
             Retry
           </button>
-        </div>
-      )}
-      {dataLoading && !hasError && allMinifigs.length === 0 && !isAuthPage && (
-        <div className="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-md flex flex-col items-center justify-center">
-          <div className="relative w-16 h-16 mb-6">
-            <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-          <p className="text-white font-black uppercase tracking-[0.3em] text-[11px] italic animate-pulse">Syncing Library...</p>
         </div>
       )}
     </div>

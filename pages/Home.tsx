@@ -3,6 +3,7 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import MinifigCard from '../components/MinifigCard';
 import CollectionDashboard from '../components/CollectionDashboard';
+import HomeSkeleton from '../components/HomeSkeleton';
 import { Minifigure, UserProfile, PopularMinifig, CollectorRank } from '../types';
 import { generateSlug } from '../utils/slug';
 import { isAbortError } from '../utils/error';
@@ -17,6 +18,7 @@ interface HomeProps {
   topMinifigs: PopularMinifig[];
   collectorRanking: CollectorRank[];
   onRetryFetch: () => void;
+  dataLoading: boolean;
 }
 
 const decodeHTMLEntities = (text: string) => {
@@ -34,7 +36,7 @@ const KEY_CHARACTER_NAMES = [
 
 import SEO from '../components/SEO';
 
-const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, user, topMinifigs, collectorRanking, onRetryFetch }) => {
+const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, user, topMinifigs, collectorRanking, onRetryFetch, dataLoading }) => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState('');
   const [showPreview, setShowPreview] = useState(false);
@@ -228,6 +230,10 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
 
   const isRealData = topMinifigs.length > 0 && topMinifigs.some(m => m.owner_count > 0);
 
+  if (dataLoading && allMinifigs.length === 0) {
+    return <HomeSkeleton />;
+  }
+
   return (
     <div className="bg-slate-50 min-h-screen" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
       <SEO 
@@ -274,7 +280,7 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
           </div>
 
           <div className="max-w-5xl mx-auto px-4 mt-1 relative z-[20] space-y-6">
-            <CollectionDashboard user={user} onNavigate={navigate} />
+            <CollectionDashboard user={user} onNavigate={navigate} allMinifigs={allMinifigs} />
             
             {/* Collector Guide Entry Point */}
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 mb-8">
@@ -426,7 +432,6 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
                         <img src={theme.image_url} className="w-full h-full object-contain group-hover:scale-110 transition-transform" alt={theme.name} onError={(e) => (e.target as HTMLImageElement).src = 'https://www.bricklink.com/img/no_image.png'} />
                     </div>
                     <h3 className="text-[9px] font-black text-slate-900 uppercase truncate leading-tight group-hover:text-indigo-600 px-1">{theme.name}</h3>
-                    <p className="text-[7px] font-bold text-slate-400 mt-1">{theme.owned || 0} / {theme.count} own</p>
                   </Link>
                 ))}
               </div>

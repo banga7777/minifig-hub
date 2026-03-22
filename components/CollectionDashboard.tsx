@@ -6,6 +6,7 @@ import { Minifigure, UserProfile } from '../types';
 interface CollectionDashboardProps {
   user: UserProfile | null;
   onNavigate: (path: string) => void;
+  allMinifigs: Minifigure[];
 }
 
 const formatCurrency = (val: number) => {
@@ -16,7 +17,7 @@ const formatCurrency = (val: number) => {
   }).format(val);
 };
 
-const CollectionDashboard: React.FC<CollectionDashboardProps> = ({ user, onNavigate }) => {
+const CollectionDashboard: React.FC<CollectionDashboardProps> = ({ user, onNavigate, allMinifigs }) => {
   const { data, isLoading } = useQuery({
     queryKey: ['collectionValue', user?.id],
     queryFn: async () => {
@@ -53,8 +54,7 @@ const CollectionDashboard: React.FC<CollectionDashboardProps> = ({ user, onNavig
     enabled: !!user,
   });
 
-  // Placeholder for total count, ideally fetched separately or cached
-  const totalFigs = 18542; 
+  const totalFigs = allMinifigs.length; 
   const collectionRate = data ? (data.count / totalFigs) * 100 : 0;
   const level = data ? Math.floor(data.count / 100) : 0;
 
