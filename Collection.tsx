@@ -374,9 +374,9 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
                           <span className="text-[8px] font-bold text-slate-300 bg-slate-100 px-1.5 py-0.5 rounded ml-1">{figs.length}</span>
                         </div>
                         <div className={`grid ${gridClass} gap-2 md:gap-3`}>
-                          {figs.map((fig, index) => (
+                          {figs.map(fig => (
                             <MinifigCard 
-                              key={`${fig.item_no}-${index}`} 
+                              key={fig.item_no} 
                               minifig={fig} 
                               onToggleOwned={onToggleOwned} 
                               onClick={() => handleCardClick(fig.item_no)} 
@@ -394,9 +394,9 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
               /* No Grouping View */
               <div className="pt-2">
                 <div className={`grid ${gridClass} gap-2 md:gap-3`}>
-                  {visibleList.map((fig, index) => (
+                  {visibleList.map(fig => (
                     <MinifigCard 
-                      key={`${fig.item_no}-${index}`} 
+                      key={fig.item_no} 
                       minifig={fig} 
                       onToggleOwned={onToggleOwned} 
                       onClick={() => handleCardClick(fig.item_no)} 
