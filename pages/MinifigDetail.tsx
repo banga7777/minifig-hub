@@ -179,7 +179,16 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifig
           <div className="absolute top-4 right-6"><button onClick={handleShare} className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center text-slate-500 active:scale-90 transition-transform shadow-sm"><i className="fas fa-share-nodes text-xs"></i></button></div>
           <div className="relative aspect-square max-w-[220px] mx-auto mb-6 group img-container-skeleton rounded-[2rem]"><div className="absolute inset-0 bg-slate-100/30 rounded-full blur-[60px] opacity-40"></div><img src={minifig.image_url} alt={`LEGO ${minifig.theme_name} ${decodedName} Minifigure ${minifig.item_no}`} className="w-full h-full object-contain relative z-10 drop-shadow-[0_20px_40px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform duration-500"/></div>
           <div className="text-center animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <Link to={`/themes/${generateSlug(minifig.theme_name)}`} className="inline-block text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-3 bg-indigo-50 px-3 py-1 rounded-full shadow-sm">{minifig.theme_name}</Link>
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Link to={`/themes/${generateSlug(minifig.theme_name)}`} className="inline-block text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] bg-indigo-50 px-3 py-1 rounded-full shadow-sm">
+                {minifig.theme_name}
+              </Link>
+              {minifig.sub_category && (
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  / {minifig.sub_category}
+                </span>
+              )}
+            </div>
             <h1 className="text-xl md:text-2xl font-black text-slate-900 leading-tight italic uppercase tracking-tighter mb-3 px-4">{decodedName}</h1>
             <div className="flex items-center justify-center gap-4 text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-8"><span className="bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">{minifig.item_no}</span><span className="w-1.5 h-1.5 bg-slate-200 rounded-full"></span><span>Released {minifig.year_released}</span></div>
             <button onClick={() => onToggleOwned(minifig.item_no)} className={`w-full max-w-[320px] h-14 rounded-2xl flex items-center justify-center gap-3 font-black uppercase text-[11px] tracking-[0.2em] transition-all active:scale-95 shadow-xl mx-auto mb-2 ${minifig.owned ? 'bg-rose-500 text-white shadow-rose-500/20' : 'bg-slate-900 text-white shadow-slate-900/20'}`}><i className={`${minifig.owned ? 'fas' : 'far'} fa-heart text-sm`}></i>{minifig.owned ? 'I OWN THIS FIGURE' : 'ADD TO COLLECTION'}</button>

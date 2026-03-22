@@ -17,6 +17,7 @@ interface HomeProps {
   topMinifigs: PopularMinifig[];
   collectorRanking: CollectorRank[];
   onRetryFetch: () => void;
+  dataLoading: boolean;
 }
 
 const decodeHTMLEntities = (text: string) => {
@@ -274,7 +275,7 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
           </div>
 
           <div className="max-w-5xl mx-auto px-4 mt-1 relative z-[20] space-y-6">
-            <CollectionDashboard user={user} onNavigate={navigate} />
+            <CollectionDashboard user={user} onNavigate={navigate} allMinifigs={allMinifigs} />
             
             {/* Collector Guide Entry Point */}
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 mb-8">
@@ -426,7 +427,6 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
                         <img src={theme.image_url} className="w-full h-full object-contain group-hover:scale-110 transition-transform" alt={theme.name} onError={(e) => (e.target as HTMLImageElement).src = 'https://www.bricklink.com/img/no_image.png'} />
                     </div>
                     <h3 className="text-[9px] font-black text-slate-900 uppercase truncate leading-tight group-hover:text-indigo-600 px-1">{theme.name}</h3>
-                    <p className="text-[7px] font-bold text-slate-400 mt-1">{theme.owned || 0} / {theme.count} own</p>
                   </Link>
                 ))}
               </div>
