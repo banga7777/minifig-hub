@@ -578,6 +578,9 @@ const App: React.FC = () => {
         const pageSize = 500;
         let hasMore = true;
 
+        // Clear existing state before fetching new data
+        setAllMinifigs([]);
+
         // Fetch owned minifigs first to correctly set 'owned' status for the first chunk
         let ownedIds = new Set<string>();
         if (user) {
