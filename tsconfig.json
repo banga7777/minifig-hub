@@ -17,7 +17,7 @@
     "jsx": "react-jsx",
     "types": ["vite/client", "node"]
   },
-  "include": ["src", "pages", "components", "services", "utils", "scripts"],
+  "include": [".", "src", "pages", "components", "services", "utils", "scripts"],
   "exclude": ["node_modules", "www", "dist", "vite.config.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
