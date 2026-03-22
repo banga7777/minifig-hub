@@ -54,8 +54,8 @@ const CollectionDashboard: React.FC<CollectionDashboardProps> = ({ user, onNavig
     enabled: !!user,
   });
 
-  const totalFigs = allMinifigs.length; 
-  const collectionRate = data ? (data.count / totalFigs) * 100 : 0;
+  const totalFigs = allMinifigs?.length || 0; 
+  const collectionRate = data && totalFigs > 0 ? (data.count / totalFigs) * 100 : 0;
   const level = data ? Math.floor(data.count / 100) : 0;
 
   return (

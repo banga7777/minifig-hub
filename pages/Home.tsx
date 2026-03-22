@@ -3,7 +3,6 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import MinifigCard from '../components/MinifigCard';
 import CollectionDashboard from '../components/CollectionDashboard';
-import HomeSkeleton from '../components/HomeSkeleton';
 import { Minifigure, UserProfile, PopularMinifig, CollectorRank } from '../types';
 import { generateSlug } from '../utils/slug';
 import { isAbortError } from '../utils/error';
@@ -18,7 +17,6 @@ interface HomeProps {
   topMinifigs: PopularMinifig[];
   collectorRanking: CollectorRank[];
   onRetryFetch: () => void;
-  dataLoading: boolean;
 }
 
 const decodeHTMLEntities = (text: string) => {
@@ -36,7 +34,7 @@ const KEY_CHARACTER_NAMES = [
 
 import SEO from '../components/SEO';
 
-const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, user, topMinifigs, collectorRanking, onRetryFetch, dataLoading }) => {
+const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, user, topMinifigs, collectorRanking, onRetryFetch }) => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState('');
   const [showPreview, setShowPreview] = useState(false);
@@ -229,10 +227,6 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
   };
 
   const isRealData = topMinifigs.length > 0 && topMinifigs.some(m => m.owner_count > 0);
-
-  if (dataLoading && allMinifigs.length === 0) {
-    return <HomeSkeleton />;
-  }
 
   return (
     <div className="bg-slate-50 min-h-screen" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
