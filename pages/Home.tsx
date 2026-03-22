@@ -17,6 +17,7 @@ interface HomeProps {
   topMinifigs: PopularMinifig[];
   collectorRanking: CollectorRank[];
   onRetryFetch: () => void;
+  dataLoading: boolean;
 }
 
 const decodeHTMLEntities = (text: string) => {
