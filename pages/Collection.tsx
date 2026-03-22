@@ -1,11 +1,11 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import MinifigCard from '../src/components/MinifigCard';
+import MinifigCard from '../components/MinifigCard';
 import { Minifigure, UserProfile } from '../types';
 import { generateSlug } from '../utils/slug';
 import { supabase } from '../services/supabaseClient';
-import SEO from '../src/components/SEO';
+import SEO from '../components/SEO';
 
 export interface CollectionProps {
   allMinifigs: Minifigure[];
@@ -251,6 +251,7 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
       <SEO 
         title="My Collection" 
         description="View and manage your personal LEGO minifigure collection. Track your progress and collection value." 
+        noindex={true}
       />
       <div className="bg-slate-900 pt-6 pb-12 px-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600 rounded-full blur-[80px] opacity-20 -mr-24 -mt-24"></div>
@@ -372,17 +373,16 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
                           <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{subName}</h3>
                           <span className="text-[8px] font-bold text-slate-300 bg-slate-100 px-1.5 py-0.5 rounded ml-1">{figs.length}</span>
                         </div>
-                        <div className={`grid ${gridClass} gap-4 md:gap-6`}>
-                          {figs.map((fig, index) => (
-                            <div key={`${fig.item_no}-${index}`} className="w-full">
-                              <MinifigCard 
-                                minifig={fig} 
-                                onToggleOwned={onToggleOwned} 
-                                onClick={() => handleCardClick(fig.item_no)} 
-                                isSelected={selectedItems.has(fig.item_no)} 
-                                isSelectionMode={isManageMode} 
-                              />
-                            </div>
+                        <div className={`grid ${gridClass} gap-2 md:gap-3`}>
+                          {figs.map(fig => (
+                            <MinifigCard 
+                              key={fig.item_no} 
+                              minifig={fig} 
+                              onToggleOwned={onToggleOwned} 
+                              onClick={() => handleCardClick(fig.item_no)} 
+                              isSelected={selectedItems.has(fig.item_no)} 
+                              isSelectionMode={isManageMode} 
+                            />
                           ))}
                         </div>
                       </div>
@@ -393,17 +393,16 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
             ) : (
               /* No Grouping View */
               <div className="pt-2">
-                <div className={`grid ${gridClass} gap-4 md:gap-6`}>
-                  {visibleList.map((fig, index) => (
-                    <div key={`${fig.item_no}-${index}`} className="w-full">
-                      <MinifigCard 
-                        minifig={fig} 
-                        onToggleOwned={onToggleOwned} 
-                        onClick={() => handleCardClick(fig.item_no)} 
-                        isSelected={selectedItems.has(fig.item_no)} 
-                        isSelectionMode={isManageMode} 
-                      />
-                    </div>
+                <div className={`grid ${gridClass} gap-2 md:gap-3`}>
+                  {visibleList.map(fig => (
+                    <MinifigCard 
+                      key={fig.item_no} 
+                      minifig={fig} 
+                      onToggleOwned={onToggleOwned} 
+                      onClick={() => handleCardClick(fig.item_no)} 
+                      isSelected={selectedItems.has(fig.item_no)} 
+                      isSelectionMode={isManageMode} 
+                    />
                   ))}
                 </div>
               </div>
