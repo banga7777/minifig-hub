@@ -574,10 +574,20 @@ const App: React.FC = () => {
       setHasError(false);
       try {
         // Fetch minifigures in chunks to avoid payload limits
-        let allRawMinifigs: RawMinifig[] = [];
         let page = 0;
-        const pageSize = 500; // Reduced from 1000 for better stability
+        const pageSize = 500;
         let hasMore = true;
+
+        // Fetch owned minifigs first to correctly set 'owned' status for the first chunk
+        let ownedIds = new Set<string>();
+        if (user) {
+          const { data: owned, error: ownedError } = await supabase
+            .from('user_owned_minifigs')
+            .select('minifig_id')
+            .eq('user_id', user.id)
+            .abortSignal(controller.signal);
+          if (!ownedError && owned) owned.forEach(o => ownedIds.add(o.minifig_id));
+        }
 
         while (hasMore) {
           const { data, error } = await supabase
@@ -589,7 +599,35 @@ const App: React.FC = () => {
           if (error) throw error;
           
           if (data && data.length > 0) {
-            allRawMinifigs = [...allRawMinifigs, ...data];
+            const enrichedChunk: Minifigure[] = data.map((m: RawMinifig) => {
+              const itemNo = m.item_no || 'unknown';
+              const themeName = m.main_category || 'Other';
+              const name = m.name_en || 'Untitled';
+              return {
+                item_no: itemNo, 
+                name: name, 
+                decoded_name: decodeHTMLEntities(name),
+                theme_name: themeName, 
+                theme_slug: generateSlug(themeName),
+                sub_category: m.sub_category || '', 
+                image_url: m.image_url || `https://img.bricklink.com/ItemImage/MN/0/${itemNo.toUpperCase()}.png`, 
+                category_id: m.category_id || 0, 
+                year_released: m.year_released || 0, 
+                owned: ownedIds.has(itemNo),
+                last_stock_min_price: m.last_stock_min_price,
+                last_stock_avg_price: m.last_stock_avg_price,
+                stock_updated_at: m.stock_updated_at
+              };
+            });
+
+            // Update state incrementally
+            setAllMinifigs(prev => [...prev, ...enrichedChunk]);
+            
+            // If it's the first page, stop loading to show content immediately
+            if (page === 0) {
+              setDataLoading(false);
+            }
+
             if (data.length < pageSize) hasMore = false;
             else page++;
           } else {
@@ -597,38 +635,6 @@ const App: React.FC = () => {
           }
         }
         
-        let ownedIds = new Set<string>();
-        if (user) {
-          const { data: owned, error: ownedError } = await supabase
-            .from('user_owned_minifigs')
-            .select('minifig_id')
-            .eq('user_id', user.id)
-            .abortSignal(controller.signal);
-          if (!ownedError && owned) owned.forEach(o => ownedIds.add(o.minifig_id));
-        }
-
-        const enriched: Minifigure[] = allRawMinifigs.map((m: RawMinifig) => {
-          const itemNo = m.item_no || 'unknown';
-          const themeName = m.main_category || 'Other';
-          const name = m.name_en || 'Untitled';
-          return {
-            item_no: itemNo, 
-            name: name, 
-            decoded_name: decodeHTMLEntities(name),
-            theme_name: themeName, 
-            theme_slug: generateSlug(themeName),
-            sub_category: m.sub_category || '', 
-            image_url: m.image_url || `https://img.bricklink.com/ItemImage/MN/0/${itemNo.toUpperCase()}.png`, 
-            category_id: m.category_id || 0, 
-            year_released: m.year_released || 0, 
-            owned: ownedIds.has(itemNo),
-            last_stock_min_price: m.last_stock_min_price,
-            last_stock_avg_price: m.last_stock_avg_price,
-            stock_updated_at: m.stock_updated_at
-          };
-        });
-        
-        setAllMinifigs(enriched);
         setTopMinifigs(prev => prev.map(m => ({ 
           ...m, 
           owned: ownedIds.has(m.item_no)
