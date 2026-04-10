@@ -77,3 +77,11 @@ export interface CollectorRank {
   owned_count: number;
   avatar_url?: string;
 }
+
+export interface JournalPost {
+  id: string;
+  title: string;
+  summary: string;
+  content: string;
+  date: string;
+}
