@@ -21,6 +21,8 @@ const SupportUnits = lazy(() => import('./pages/SupportUnits'));
 const PrivacyPolicy = lazy(() => import('./src/pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./src/pages/TermsOfService'));
 const About = lazy(() => import('./src/pages/About'));
+const JournalList = lazy(() => import('./pages/JournalList'));
+const JournalDetail = lazy(() => import('./pages/JournalDetail'));
 import { generateSlug } from './utils/slug';
 import { isAbortError } from './utils/error';
 import Footer from './src/components/Footer';
@@ -289,6 +291,8 @@ const MainContent: React.FC<MainContentProps> = ({
             <Route path="/privacy-policy" element={<PageWrapper><PrivacyPolicy /></PageWrapper>} />
             <Route path="/terms-of-service" element={<PageWrapper><TermsOfService /></PageWrapper>} />
             <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
+            <Route path="/journal" element={<PageWrapper><JournalList /></PageWrapper>} />
+            <Route path="/journal/:id" element={<PageWrapper><JournalDetail /></PageWrapper>} />
 
             <Route path="*" element={<PageWrapper><div className="min-h-screen flex items-center justify-center text-center p-4"><div className="animate-in fade-in zoom-in duration-300"><p className="text-slate-400 font-bold mb-4">Page Not Found</p><p className="text-xs text-slate-300 mb-6 font-mono">{location.pathname}</p><Link to="/" className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Go Home</Link></div></div></PageWrapper>} />
           </Routes>

@@ -3,11 +3,12 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import MinifigCard from '../components/MinifigCard';
 import CollectionDashboard from '../components/CollectionDashboard';
-import { Minifigure, UserProfile, PopularMinifig, CollectorRank } from '../types';
+import { Minifigure, UserProfile, PopularMinifig, CollectorRank, JournalPost } from '../types';
 import { generateSlug } from '../utils/slug';
 import { isAbortError } from '../utils/error';
 import { MOCK_THEMES } from '../services/mockData';
 import { supabase } from '../services/supabaseClient';
+import journalData from '../data/journal.json';
 
 interface HomeProps {
   onToggleOwned: (id: string) => void;
@@ -327,6 +328,24 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
                     />
                   </div>
                 </Link>
+              </div>
+            </section>
+            
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 mb-8">
+              <div className="flex items-center justify-between mb-3 px-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-3.5 bg-indigo-600 rounded-full"></div>
+                  <h2 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.1em] italic">Collector's Journal</h2>
+                </div>
+                <Link to="/journal" className="text-[8px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-widest">See All</Link>
+              </div>
+              
+              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory px-1">
+                {(journalData as JournalPost[]).slice(0, 5).map((post) => (
+                  <Link key={post.id} to={`/journal/${post.id}`} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:border-indigo-200 transition-all flex flex-col justify-center flex-shrink-0 w-64 h-32 snap-start">
+                    <h3 className="text-sm font-black text-slate-900 uppercase leading-tight line-clamp-3">{post.title}</h3>
+                  </Link>
+                ))}
               </div>
             </section>
 
