@@ -7,6 +7,7 @@ import MinifigCard from '../components/MinifigCard';
 import { supabase } from '../services/supabaseClient';
 import { isAbortError } from '../utils/error';
 import { AdMobService } from '../services/adMobService';
+import PriceTrendGraph from '../components/PriceTrendGraph';
 
 const AMAZON_TAG = 'minifighub-20'; 
 const EBAY_CAMPID = '5339000000';  
@@ -14,6 +15,12 @@ const EBAY_CAMPID = '5339000000';
 interface AppearanceSummary {
   item_no: string;
   set_list: string[];
+}
+
+interface SalesHistory {
+  date_ordered: string;
+  unit_price: number;
+  quantity: number;
 }
 
 interface MinifigDetailProps {
@@ -45,7 +52,9 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifig
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [appearanceSummary, setAppearanceSummary] = useState<AppearanceSummary | null>(null);
+  const [salesHistory, setSalesHistory] = useState<SalesHistory[]>([]);
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [loadingSales, setLoadingSales] = useState(false);
   
   const minifig = useMemo(() => {
     if (!id) return undefined;
@@ -84,7 +93,27 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifig
         setLoadingSummary(false);
       }
     };
+    
+    const fetchSalesHistory = async () => {
+      setLoadingSales(true);
+      try {
+        const { data, error } = await supabase
+          .from('minifig_sales_history')
+          .select('date_ordered, unit_price, quantity')
+          .eq('item_no', minifig.item_no)
+          .order('date_ordered', { ascending: true })
+          .abortSignal(controller.signal);
+        
+        if (!error && data) setSalesHistory(data);
+      } catch (err: unknown) {
+        if (!isAbortError(err)) console.error("Error fetching sales history:", err);
+      } finally {
+        setLoadingSales(false);
+      }
+    };
+
     fetchAppearanceData();
+    fetchSalesHistory();
     return () => controller.abort();
   }, [id, minifig]);
 
@@ -149,7 +178,7 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifig
     <div className="pb-40 bg-slate-50 min-h-screen font-['Outfit'] ios-scroll">
       <SEO 
         title={`${decodedName} (${minifig.item_no})`}
-        description={`Check out ${decodedName} (${minifig.item_no}) from ${minifig.theme_name}. Current market value: ${formatCurrency(minifig.last_stock_avg_price)}.`}
+        description={`Check out ${decodedName} (${minifig.item_no}) from ${minifig.theme_name}.`}
         image={minifig.image_url}
         canonical={`https://minifighub.com/minifigs/${minifig.item_no}`}
         keywords={`LEGO, Minifigure, ${minifig.item_no}, ${decodedName}, ${minifig.theme_name}, Price, Value`}
@@ -169,7 +198,7 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifig
             "@type": "Offer",
             "url": window.location.href,
             "priceCurrency": "USD",
-            "price": minifig.last_stock_avg_price || "0",
+            "price": minifig.last_price || "0",
             "itemCondition": "https://schema.org/NewCondition"
           }
         })}
@@ -201,18 +230,14 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifig
             <div className="flex items-center justify-between mb-6">
                <div className="flex items-center gap-2">
                  <div className="w-1.5 h-4 bg-emerald-500 rounded-full"></div>
-                 <h2 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.1em] italic">Market Value</h2>
+                 <h2 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.15em] italic">Market Value</h2>
                </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 gap-4 mb-6">
                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Avg</p>
-                  <p className="text-xl font-black text-emerald-600">{formatCurrency(minifig.last_stock_avg_price)}</p>
-               </div>
-               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Min</p>
-                  <p className="text-xl font-black text-indigo-600">{formatCurrency(minifig.last_stock_min_price)}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Market Value</p>
+                  <p className="text-xl font-black text-indigo-600">{formatCurrency(minifig.last_price)}</p>
                </div>
             </div>
 
@@ -223,6 +248,12 @@ const MinifigDetail: React.FC<MinifigDetailProps> = ({ onToggleOwned, allMinifig
             </div>
           </div>
         </div>
+
+        {salesHistory.length > 0 && (
+          <div className="px-6 relative z-20">
+            <PriceTrendGraph data={salesHistory} />
+          </div>
+        )}
 
         {/* Collector's Guide (SEO Description) */}
         {minifig.item_no === 'sw0590' && (

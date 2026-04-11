@@ -190,7 +190,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({ allMinifigs = [], onToggl
       if (sortBy === 'name') comparison = a.minifig.decoded_name.localeCompare(b.minifig.decoded_name);
       else if (sortBy === 'id') comparison = a.minifig.item_no.localeCompare(b.minifig.item_no);
       else if (sortBy === 'year') comparison = a.minifig.year_released - b.minifig.year_released;
-      else if (sortBy === 'value') comparison = (a.minifig.last_stock_min_price || 0) - (b.minifig.last_stock_min_price || 0);
+      else if (sortBy === 'value') comparison = (a.minifig.last_price || 0) - (b.minifig.last_price || 0);
       
       return sortOrder === 'asc' ? comparison : -comparison;
     }).map(item => item.minifig);

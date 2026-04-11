@@ -374,7 +374,7 @@ const ArmyBuilderHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigu
         m.name.toLowerCase().includes('droid') ||
         m.sub_category?.toLowerCase().includes('army builder')
       )
-      .sort((a, b) => (b.last_stock_min_price || 0) - (a.last_stock_min_price || 0))
+      .sort((a, b) => (b.last_price || 0) - (a.last_price || 0))
       .slice(0, 10);
   }, [combinedMinifigs]);
 

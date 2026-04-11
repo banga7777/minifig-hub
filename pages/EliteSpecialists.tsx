@@ -378,7 +378,7 @@ const EliteHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigure[], 
         m.name.toLowerCase().includes('commando') ||
         m.name.toLowerCase().includes('guard')
       )
-      .sort((a, b) => (b.last_stock_min_price || 0) - (a.last_stock_min_price || 0))
+      .sort((a, b) => (b.last_price || 0) - (a.last_price || 0))
       .slice(0, 10);
   }, [combinedMinifigs]);
 

@@ -414,7 +414,7 @@ const CharacterHome = ({ allMinifigs, onToggleOwned }: { allMinifigs: Minifigure
         m.name.toLowerCase().includes('yoda') ||
         m.name.toLowerCase().includes('maul')
       )
-      .sort((a, b) => (b.last_stock_min_price || 0) - (a.last_stock_min_price || 0))
+      .sort((a, b) => (b.last_price || 0) - (a.last_price || 0))
       .slice(0, 10);
   }, [combinedMinifigs]);
 

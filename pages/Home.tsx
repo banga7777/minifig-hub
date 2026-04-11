@@ -364,9 +364,9 @@ const Home: React.FC<HomeProps> = ({ onToggleOwned, ownedMinifigs, allMinifigs, 
                     <div key={m.item_no} className="flex-shrink-0 w-28 cursor-pointer group" onClick={() => navigate(`/minifigs/${m.item_no}-${generateSlug(m.name)}`)}>
                       <div className="aspect-square bg-slate-50 rounded-2xl mb-3 flex items-center justify-center relative overflow-hidden border border-slate-100 shadow-sm group-hover:border-indigo-200 transition-all">
                         <div className={`absolute top-2 left-2 z-30 w-5 h-5 rounded-lg flex items-center justify-center font-black text-[9px] ring-2 ring-slate-200 shadow-md ${getRankColor(m.rank)}`}>{m.rank}</div>
-                        {m.last_stock_min_price ? (
+                        {m.last_price ? (
                           <div className="absolute top-2 right-2 z-30 bg-indigo-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-sm border border-indigo-400/50 backdrop-blur-sm">
-                            ${m.last_stock_min_price.toFixed(2)}
+                            ${m.last_price.toFixed(2)}
                           </div>
                         ) : null}
                         <img src={m.image_url} className="w-[85%] h-[85%] object-contain drop-shadow-lg group-hover:scale-110 transition-transform duration-500" alt="" onError={(e) => (e.target as HTMLImageElement).src = `https://img.bricklink.com/ItemImage/MN/0/${m.item_no.toUpperCase()}.png`} />

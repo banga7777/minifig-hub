@@ -37,17 +37,15 @@ const CollectionDashboard: React.FC<CollectionDashboardProps> = ({ user, onNavig
       // 2. Fetch minifigures with prices
       const { data: minifigs, error: minifigsError } = await supabase
         .from('minifigures')
-        .select('item_no, last_stock_avg_price, last_stock_min_price')
+        .select('item_no, last_price')
         .in('item_no', minifigIds);
         
       if (minifigsError) throw minifigsError;
       
-      const totalAvgValue = minifigs.reduce((sum, m) => sum + (m.last_stock_avg_price || 0), 0);
-      const totalMinValue = minifigs.reduce((sum, m) => sum + (m.last_stock_min_price || 0), 0);
+      const totalMinValue = minifigs.reduce((sum, m) => sum + (m.last_price || 0), 0);
       
       return {
         count: minifigs.length,
-        totalAvgValue,
         totalMinValue
       };
     },
@@ -82,12 +80,7 @@ const CollectionDashboard: React.FC<CollectionDashboardProps> = ({ user, onNavig
            {user && !isLoading && data ? (
              <div className="flex flex-col items-end">
                 <div className="flex items-baseline gap-1">
-                   <span className="text-base font-black text-emerald-600 tracking-tighter">{formatCurrency(data.totalAvgValue)}</span>
-                   <span className="text-[6px] font-black text-emerald-400 uppercase">Avg</span>
-                </div>
-                <div className="flex items-baseline gap-1 opacity-60">
                    <span className="text-[9px] font-black text-indigo-400 tracking-tight">{formatCurrency(data.totalMinValue)}</span>
-                   <span className="text-[5px] font-black text-indigo-300 uppercase">Min</span>
                 </div>
              </div>
            ) : (

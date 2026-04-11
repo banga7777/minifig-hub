@@ -69,8 +69,7 @@ interface RawMinifig {
   image_url?: string;
   category_id?: number;
   year_released?: number;
-  last_stock_min_price?: number;
-  last_stock_avg_price?: number;
+  last_price?: number;
   stock_updated_at?: string;
   owner_count?: string | number;
   change_percent?: string | number;
@@ -492,7 +491,7 @@ const App: React.FC = () => {
         if (trendError || !trendData || trendData.length === 0) {
           const { data: details, error: detailError } = await supabase
             .from('minifigures')
-            .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_stock_min_price, last_stock_avg_price')
+            .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_price')
             .in('item_no', STARTER_TREND_IDS)
             .abortSignal(controller.signal);
 
@@ -515,8 +514,7 @@ const App: React.FC = () => {
                 owned: false,
                 rank: idx + 1,
                 owner_count: 0,
-                last_stock_min_price: base.last_stock_min_price,
-                last_stock_avg_price: base.last_stock_avg_price
+                last_price: base.last_price
               };
             }).filter(Boolean) as PopularMinifig[];
             setTopMinifigs(fallback);
@@ -540,8 +538,7 @@ const App: React.FC = () => {
             owned: false,
             rank: idx + 1,
             owner_count: typeof m.owner_count === 'string' ? parseInt(m.owner_count) : (m.owner_count || 0),
-            last_stock_min_price: m.last_stock_min_price,
-            last_stock_avg_price: m.last_stock_avg_price
+            last_price: m.last_price,
           };
         });
 
@@ -595,7 +592,7 @@ const App: React.FC = () => {
         while (hasMore) {
           const { data, error } = await supabase
             .from('minifigures')
-            .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_stock_min_price, last_stock_avg_price, stock_updated_at')
+            .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_price, stock_updated_at')
             .range(page * pageSize, (page + 1) * pageSize - 1)
             .abortSignal(controller.signal);
           
@@ -635,8 +632,7 @@ const App: React.FC = () => {
             category_id: m.category_id || 0, 
             year_released: m.year_released || 0, 
             owned: ownedIds.has(itemNo),
-            last_stock_min_price: m.last_stock_min_price,
-            last_stock_avg_price: m.last_stock_avg_price,
+            last_price: m.last_price,
             stock_updated_at: m.stock_updated_at
           };
         });

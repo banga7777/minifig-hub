@@ -12,8 +12,7 @@ export interface Minifigure {
   year_released: number;
   owned: boolean;
   type?: string;
-  last_stock_min_price?: number;
-  last_stock_avg_price?: number;
+  last_price?: number;
   change_percent?: number;
   stock_updated_at?: string;
   description?: string;

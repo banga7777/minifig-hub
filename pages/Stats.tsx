@@ -22,8 +22,7 @@ const Stats: React.FC<StatsProps> = ({ ownedMinifigs, allMinifigs, user }) => {
     const completion = totalFigs > 0 ? (ownedTotal / totalFigs) * 100 : 0;
     
     // 가치 합계 계산
-    const totalAvgValue = ownedMinifigs.reduce((sum: number, m: Minifigure) => sum + (m.last_stock_avg_price || 0), 0);
-    const totalMinValue = ownedMinifigs.reduce((sum: number, m: Minifigure) => sum + (m.last_stock_min_price || 0), 0);
+    const totalMinValue = ownedMinifigs.reduce((sum: number, m: Minifigure) => sum + (m.last_price || 0), 0);
 
     // 테마별 보유 수량
     const themeCounts = new Map<string, number>();
@@ -44,7 +43,7 @@ const Stats: React.FC<StatsProps> = ({ ownedMinifigs, allMinifigs, user }) => {
     const recentYears = Array.from(yearCounts.entries())
       .sort((a: [number, number], b: [number, number]) => a[0] - b[0]);
       
-    return { totalFigs, ownedTotal, completion, topThemes, recentYears, totalAvgValue, totalMinValue };
+    return { totalFigs, ownedTotal, completion, topThemes, recentYears, totalMinValue };
   }, [ownedMinifigs, allMinifigs]);
 
   const maxYearCount = useMemo(() => {
@@ -125,16 +124,9 @@ const Stats: React.FC<StatsProps> = ({ ownedMinifigs, allMinifigs, user }) => {
              </h3>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
              <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Value (Average)</p>
-                <p className="text-3xl font-black text-emerald-600 tracking-tighter">{formatCurrency(stats.totalAvgValue)}</p>
-                <div className="mt-4 h-1 w-full bg-emerald-100 rounded-full overflow-hidden">
-                   <div className="h-full bg-emerald-500 w-full animate-in slide-in-from-left duration-1000"></div>
-                </div>
-             </div>
-             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Value (Minimum)</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Value (Market)</p>
                 <p className="text-3xl font-black text-indigo-600 tracking-tighter">{formatCurrency(stats.totalMinValue)}</p>
                 <div className="mt-4 h-1 w-full bg-indigo-100 rounded-full overflow-hidden">
                    <div className="h-full bg-indigo-500 w-[70%] animate-in slide-in-from-left duration-1000"></div>

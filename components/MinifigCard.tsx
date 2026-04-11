@@ -32,8 +32,8 @@ const MinifigCard: React.FC<MinifigCardProps> = ({
 }) => {
   const decodedName = minifig.decoded_name;
   const currentYear = new Date().getFullYear();
-  // 카드에는 평균가 대신 최저가(Min Price)를 표시
-  const priceDisplay = formatCurrency(minifig.last_stock_min_price);
+  // 카드에는 평균가 대신 최근 거래가(Market Value)를 표시
+  const priceDisplay = formatCurrency(minifig.last_price);
   const isDark = variant === 'dark';
 
   return (

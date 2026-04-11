@@ -143,7 +143,7 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
         
         const { data, error } = await supabase
           .from('minifigures')
-          .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_stock_min_price, last_stock_avg_price, stock_updated_at')
+          .select('item_no, main_category, sub_category, name_en, category_id, year_released, image_url, last_price, stock_updated_at')
           .ilike('main_category', `%${likelyThemeName}%`)
           .abortSignal(controller.signal);
 
@@ -161,8 +161,7 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
             category_id: m.category_id || 0,
             year_released: m.year_released || 0,
             owned: allMinifigs.find(am => am.item_no === m.item_no)?.owned || false,
-            last_stock_min_price: m.last_stock_min_price,
-            last_stock_avg_price: m.last_stock_avg_price,
+            last_price: m.last_price,
             stock_updated_at: m.stock_updated_at
           })).filter((m: any) => m.theme_slug === targetSlug); // Final precise filter
           
@@ -225,7 +224,7 @@ const ThemeDetail: React.FC<ThemeDetailProps> = ({ onToggleOwned, onBulkToggleOw
       } else if (sortBy === 'newest') {
         comparison = a.year_released - b.year_released;
       } else if (sortBy === 'value') {
-        comparison = (a.last_stock_min_price || 0) - (b.last_stock_min_price || 0);
+        comparison = (a.last_price || 0) - (b.last_price || 0);
       }
       return sortOrder === 'asc' ? comparison : -comparison;
     });

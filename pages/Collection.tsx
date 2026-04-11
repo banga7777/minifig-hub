@@ -111,8 +111,7 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
 
   const ownedMinifigs = useMemo(() => allMinifigs.filter(m => m.owned), [allMinifigs]);
   
-  const totalAvgValue = useMemo(() => ownedMinifigs.reduce((sum, m) => sum + (m.last_stock_avg_price || 0), 0), [ownedMinifigs]);
-  const totalMinValue = useMemo(() => ownedMinifigs.reduce((sum, m) => sum + (m.last_stock_min_price || 0), 0), [ownedMinifigs]);
+  const totalMinValue = useMemo(() => ownedMinifigs.reduce((sum, m) => sum + (m.last_price || 0), 0), [ownedMinifigs]);
   
   const totalCount = allMinifigs.length;
   const completionRate = totalCount > 0 ? (ownedMinifigs.length / totalCount) * 100 : 0;
@@ -135,7 +134,7 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
         const themeComp = a.theme_name.localeCompare(b.theme_name);
         return themeComp !== 0 ? themeComp : decodeHTMLEntities(a.name).toLowerCase().localeCompare(decodeHTMLEntities(b.name).toLowerCase());
       }
-      if (sortBy === 'value') return (b.last_stock_min_price || 0) - (a.last_stock_min_price || 0);
+      if (sortBy === 'value') return (b.last_price || 0) - (a.last_price || 0);
       return sortBy === 'newest' ? (b.year_released - a.year_released) || b.item_no.localeCompare(a.item_no) : 0;
     });
     return result;
@@ -309,13 +308,8 @@ const Collection: React.FC<CollectionProps> = ({ allMinifigs, onToggleOwned, onB
              <div className="flex flex-col items-end">
                 <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 opacity-80">Collection Total Value</p>
                 <div className="flex flex-col items-end gap-0.5">
-                   <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl font-black text-emerald-400 tracking-tighter">{formatCurrency(totalAvgValue)}</span>
-                      <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Avg</span>
-                   </div>
                    <div className="flex items-baseline gap-1.5 opacity-60">
                       <span className="text-sm font-black text-indigo-400 tracking-tight">{formatCurrency(totalMinValue)}</span>
-                      <span className="text-[7px] font-black text-indigo-600 uppercase tracking-widest">Min Est.</span>
                    </div>
                 </div>
              </div>
